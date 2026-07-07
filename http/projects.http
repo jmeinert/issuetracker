@@ -1,0 +1,30 @@
+### Alle Projekte abrufen
+GET http://localhost:8080/api/projects
+
+
+### Projekt per ID abrufen
+GET http://localhost:8080/api/projects/1
+
+
+### Projekt erstellen
+POST http://localhost:8080/api/projects
+Content-Type: application/json
+
+{
+  "name": "Spring Boot Demo",
+  "description": "Mein erstes eigenes CRUD mit Spring Boot"
+}
+
+
+### Projekt aktualisieren
+PUT http://localhost:8080/api/projects/1
+Content-Type: application/json
+
+{
+  "name": "Spring Boot Demo aktualisiert",
+  "description": "Beschreibung wurde geändert"
+}
+
+
+### Projekt löschen
+DELETE http://localhost:8080/api/projects/1
