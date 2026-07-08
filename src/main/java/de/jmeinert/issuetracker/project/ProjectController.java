@@ -26,24 +26,30 @@ public class ProjectController {
     }
 
     @GetMapping
-    public List<Project> getAll() {
-        return projectService.findAll();
+    public List<ProjectResponse> getAll() {
+        return projectService.findAll().stream()
+            .map(ProjectResponse::from)
+            .toList();
     }
 
     @GetMapping("/{id}")
-    public Project getProjectById(@PathVariable Long id) {
-        return projectService.findById(id);
+    public ProjectResponse getProjectById(@PathVariable Long id) {
+        return ProjectResponse.from(projectService.findById(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Project createProject(@Valid @RequestBody Project project) {
-        return projectService.create(project.getName(), project.getDescription());
+    public ProjectResponse createProject(@Valid @RequestBody ProjectRequest projectRequest) {
+        return ProjectResponse.from(
+            projectService.create(projectRequest.name(), projectRequest.description())
+        );
     }
 
     @PutMapping("/{id}")
-    public Project updateProject(@PathVariable Long id, @Valid @RequestBody Project project) {
-        return projectService.update(id, project.getName(), project.getDescription());
+    public ProjectResponse updateProject(@PathVariable Long id, @Valid @RequestBody ProjectRequest projectRequest) {
+        return ProjectResponse.from(
+            projectService.update(id, projectRequest.name(), projectRequest.description())
+        );
     }
 
     @DeleteMapping("/{id}")
