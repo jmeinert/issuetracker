@@ -1,13 +1,13 @@
 package de.jmeinert.issuetracker.project;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ProjectResponse(
     Long id,
     String name,
     String description,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
 
     public static ProjectResponse from(Project project) {

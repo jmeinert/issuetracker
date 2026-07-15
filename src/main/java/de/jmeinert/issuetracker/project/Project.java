@@ -1,12 +1,17 @@
 package de.jmeinert.issuetracker.project;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 public class Project {
 
     @Id
@@ -17,9 +22,11 @@ public class Project {
 
     private String description;
 
-    private LocalDateTime createdAt;
+    @CreatedDate
+    private Instant createdAt;
 
-    private LocalDateTime updatedAt;
+    @LastModifiedDate
+    private Instant updatedAt;
 
     protected Project() {
     }
@@ -27,8 +34,6 @@ public class Project {
     public Project(String name, String description) {
         this.name = name;
         this.description = description;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -43,17 +48,16 @@ public class Project {
         return description;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 
     public void update(String name, String description) {
         this.name = name;
         this.description = description;
-        this.updatedAt = LocalDateTime.now();
     }
 }
