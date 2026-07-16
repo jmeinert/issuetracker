@@ -101,6 +101,44 @@ class ProjectControllerTest {
     }
 
     @Test
+    void createProject_returns400_whenNameIsTooLong() throws Exception {
+        String tooLongName = "a".repeat(151);
+
+        mockMvc.perform(post("/api/projects")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "name": "%s",
+                    "description": "TestDescription"
+                }
+                """.formatted(tooLongName)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.name").value("size must be between 0 and 150"));
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void createProject_returns400_whenDescriptionIsTooLong() throws Exception {
+        String tooLongDescription = "a".repeat(1001);
+
+        mockMvc.perform(post("/api/projects")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "name": "TestName",
+                    "description": "%s"
+                }
+                """.formatted(tooLongDescription)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.description").value("size must be between 0 and 1000"));
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
     void updateProject_returns200_whenProjectExists() throws Exception {
         when(projectService.update(1L, "TestName", "UpdatedTestDescription"))
             .thenReturn(new Project("TestName", "UpdatedTestDescription"));
