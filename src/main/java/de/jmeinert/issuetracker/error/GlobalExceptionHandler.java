@@ -1,6 +1,6 @@
-package de.jmeinert.issuetracker.project;
+package de.jmeinert.issuetracker.error;
 
-import de.jmeinert.issuetracker.error.ErrorResponse;
+import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
-public class ProjectExceptionHandler {
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(ProjectNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
