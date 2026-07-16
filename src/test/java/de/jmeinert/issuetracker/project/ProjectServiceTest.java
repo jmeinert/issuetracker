@@ -62,19 +62,21 @@ class ProjectServiceTest {
     }
 
     @Test
-    void update_updatesAndSavesProject_whenProjectExists() {
+    void update_updatesProject_whenProjectExists() {
+        Long id = 1L;
         Project project = new Project("Testname", "TestDescription");
         String updatedName = "UpdatedTestName";
         String updatedDescription = "UpdatedTestDescription";
 
-        when(projectRepository.findById(1L))
+        when(projectRepository.findById(id))
             .thenReturn(Optional.of(project));
 
-        projectService.update(1L, updatedName, updatedDescription);
-        verify(projectRepository).save(projectArgumentCaptor.capture());
+        Project updatedProject = projectService.update(id, updatedName, updatedDescription);
 
-        assertEquals(updatedName, projectArgumentCaptor.getValue().getName());
-        assertEquals(updatedDescription, projectArgumentCaptor.getValue().getDescription());
+        verify(projectRepository).findById(id);
+
+        assertEquals(updatedName, updatedProject.getName());
+        assertEquals(updatedDescription, updatedProject.getDescription());
     }
 
     @Test
@@ -90,24 +92,27 @@ class ProjectServiceTest {
     @Test
     void delete_deletesProject_whenProjectExists() {
         Long id = 1L;
+        Project project = new Project("Testname", "TestDescription");
 
-        when(projectRepository.existsById(id))
-            .thenReturn(true);
+        when(projectRepository.findById(id))
+            .thenReturn(Optional.of(project));
 
         projectService.delete(id);
-        verify(projectRepository).deleteById(id);
+
+        verify(projectRepository).findById(id);
+        verify(projectRepository).delete(project);
     }
 
     @Test
     void delete_throwsProjectNotFoundException_whenProjectDoesNotExist() {
         Long id = 5L;
 
-        when(projectRepository.existsById(id))
-            .thenReturn(false);
+        when(projectRepository.findById(id))
+            .thenReturn(Optional.empty());
 
         assertProjectNotFound(id, () -> projectService.delete(id));
 
-        verify(projectRepository).existsById(id);
+        verify(projectRepository).findById(id);
         verifyNoMoreInteractions(projectRepository);
     }
 

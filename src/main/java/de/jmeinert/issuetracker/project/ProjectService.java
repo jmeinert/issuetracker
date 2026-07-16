@@ -1,10 +1,12 @@
 package de.jmeinert.issuetracker.project;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
@@ -22,24 +24,23 @@ public class ProjectService {
             .orElseThrow(() -> new ProjectNotFoundException(id));
     }
 
+    @Transactional
     public Project create(String name, String description) {
         Project project = new Project(name, description);
 
         return projectRepository.save(project);
     }
 
+    @Transactional
     public Project update(Long id, String name, String description) {
         Project project = findById(id);
         project.update(name, description);
-
-        return projectRepository.save(project);
+        return project;
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (!projectRepository.existsById(id)) {
-            throw new ProjectNotFoundException(id);
-        }
-
-        projectRepository.deleteById(id);
+        Project project = findById(id);
+        projectRepository.delete(project);
     }
 }
