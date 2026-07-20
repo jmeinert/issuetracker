@@ -3,6 +3,7 @@ package de.jmeinert.issuetracker.error;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,5 +34,11 @@ public class GlobalExceptionHandler {
             ));
 
         return new ErrorResponse("Validation failed", errors);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        return new ErrorResponse("Invalid request body");
     }
 }

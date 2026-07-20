@@ -1,0 +1,10 @@
+### Issue erstellen
+POST http://localhost:8080/api/projects/1/issues
+Content-Type: application/json
+
+{
+  "title": "Demo Issue",
+  "description": "Beschreibung des Demo Issues",
+  "status": "OPEN",
+  "priority": "LOW"
+}
