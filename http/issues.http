@@ -1,3 +1,6 @@
+### Issue per ID abrufen
+GET http://localhost:8080/api/issues/2
+
 ### Issue erstellen
 POST http://localhost:8080/api/projects/1/issues
 Content-Type: application/json

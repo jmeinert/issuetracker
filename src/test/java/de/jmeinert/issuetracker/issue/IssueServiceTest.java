@@ -6,11 +6,14 @@ import de.jmeinert.issuetracker.project.ProjectService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,6 +35,34 @@ class IssueServiceTest {
 
     @Captor
     private ArgumentCaptor<Issue> issueArgumentCaptor;
+
+    @Test
+    void findById_returnsIssue_whenIssueExists() {
+        Long issueId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            IssueStatus.OPEN,
+            IssuePriority.LOW,
+            project
+        );
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        assertEquals(issue, issueService.findById(issueId));
+    }
+
+    @Test
+    void findById_throwsIssueNotFoundException_whenIssueDoesNotExist() {
+        Long issueId = 5L;
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.empty());
+
+        assertIssueNotFound(issueId, () -> issueService.findById(issueId));
+    }
 
     @Test
     void create_savesIssue() {
@@ -79,5 +110,13 @@ class IssueServiceTest {
         assertEquals("Project not found with id: " + projectId, exception.getMessage());
 
         verifyNoInteractions(issueRepository);
+    }
+
+    private void assertIssueNotFound(Long issueId, Executable executable) {
+        IssueNotFoundException exception = assertThrows(
+            IssueNotFoundException.class,
+            executable
+        );
+        assertEquals("Issue not found with id: " + issueId, exception.getMessage());
     }
 }

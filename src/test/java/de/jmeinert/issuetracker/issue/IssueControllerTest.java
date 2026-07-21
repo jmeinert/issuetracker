@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,6 +29,46 @@ class IssueControllerTest {
 
     @MockitoBean
     private IssueService issueService;
+
+    @Test
+    void getIssueById_returns200_whenIssueExists() throws Exception {
+        Long issueId = 1L;
+        Long projectId = 2L;
+
+        Project project = new Project("TestName", "TestDescription");
+        ReflectionTestUtils.setField(project, "id", projectId);
+
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            IssueStatus.OPEN,
+            IssuePriority.LOW,
+            project
+        );
+
+        when(issueService.findById(issueId))
+            .thenReturn(issue);
+
+        mockMvc.perform(get("/api/issues/{issueId}", issueId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("TestTitle"))
+            .andExpect(jsonPath("$.description").value("TestDescription"))
+            .andExpect(jsonPath("$.status").value("OPEN"))
+            .andExpect(jsonPath("$.priority").value("LOW"))
+            .andExpect(jsonPath("$.projectId").value(projectId));
+    }
+
+    @Test
+    void getIssueById_returns404_whenIssueDoesNotExist() throws Exception {
+        Long issueId = 5L;
+
+        when(issueService.findById(issueId))
+            .thenThrow(new IssueNotFoundException(issueId));
+
+        mockMvc.perform(get("/api/issues/{issueId}", issueId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
+    }
 
     @Test
     void createIssue_returns201_whenRequestIsValid() throws Exception {

@@ -22,6 +22,11 @@ public class IssueService {
         this.projectService = projectService;
     }
 
+    public Issue findById(Long id) {
+        return issueRepository.findById(id)
+            .orElseThrow(() -> new IssueNotFoundException(id));
+    }
+
     @Transactional
     public Issue create(Long projectId, CreateIssueRequest request) {
         Project project = projectService.findById(projectId);
