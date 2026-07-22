@@ -109,4 +109,10 @@ public class Issue {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    public void update(String title, String description, IssuePriority priority) {
+        this.title = title;
+        this.description = description;
+        this.priority = priority;
+    }
 }

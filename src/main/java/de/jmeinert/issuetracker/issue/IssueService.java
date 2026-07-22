@@ -40,4 +40,16 @@ public class IssueService {
 
         return issueRepository.save(issue);
     }
+
+    @Transactional
+    public Issue update(Long issueId, UpdateIssueRequest request) {
+        Issue issue = findById(issueId);
+
+        if (issue.getStatus() == IssueStatus.CLOSED) {
+            throw new ClosedIssueUpdateException(issueId);
+        }
+
+        issue.update(request.title(), request.description(), request.priority());
+        return issue;
+    }
 }

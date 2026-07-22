@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -260,5 +261,176 @@ class IssueControllerTest {
             .andExpect(jsonPath("$.message").value("Invalid request body"));
 
         verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void updateIssue_returns200_whenIssueExists() throws Exception {
+        Long issueId = 1L;
+        Long projectId = 2L;
+
+        Project project = new Project("TestName", "TestDescription");
+        ReflectionTestUtils.setField(project, "id", projectId);
+
+        Issue issue = new Issue(
+            "UpdatedTestTitle",
+            "UpdatedTestDescription",
+            IssueStatus.OPEN,
+            IssuePriority.MEDIUM,
+            project
+        );
+
+        when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
+            .thenReturn(issue);
+
+        mockMvc.perform(put("/api/issues/{issueId}", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
+            .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
+            .andExpect(jsonPath("$.priority").value("MEDIUM"));
+
+        verify(issueService).update(eq(issueId), any(UpdateIssueRequest.class));
+    }
+
+    @Test
+    void updateIssue_returns404_whenIssueDoesNotExist() throws Exception {
+        Long issueId = 1L;
+
+        when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
+            .thenThrow(new IssueNotFoundException(issueId));
+
+        mockMvc.perform(put("/api/issues/{issueId}", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
+    }
+
+    @Test
+    void updateIssue_returns400_whenTitleIsEmpty() throws Exception {
+        mockMvc.perform(put("/api/issues/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "",
+                    "description": "TestDescription",
+                    "priority": "LOW"
+                }
+                """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.title").value("must not be blank"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void updateIssue_returns400_whenTitleIsTooLong() throws Exception {
+        String titleTooLong = "a".repeat(151);
+
+        mockMvc.perform(put("/api/issues/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "%s",
+                    "description": "TestDescription",
+                    "priority": "LOW"
+                }
+                """.formatted(titleTooLong)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.title").value("size must be between 0 and 150"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void updateIssue_returns400_whenDescriptionIsTooLong() throws Exception {
+        String descriptionTooLong = "a".repeat(1001);
+
+        mockMvc.perform(put("/api/issues/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "TestTitle",
+                    "description": "%s",
+                    "priority": "LOW"
+                }
+                """.formatted(descriptionTooLong)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.description").value("size must be between 0 and 1000"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void updateIssue_returns400_whenPriorityIsMissing() throws Exception {
+        mockMvc.perform(put("/api/issues/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "TestTitle",
+                    "description": "TestDescription"
+                }
+                """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.priority").value("must not be null"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void updateIssue_returns400_whenPriorityIsInvalid() throws Exception {
+        mockMvc.perform(put("/api/issues/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "TestTitle",
+                    "description": "TestDescription",
+                    "priority": "EXTRAHIGH"
+                }
+                """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Invalid request body"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void updateIssue_returns409_whenIssueIsClosed() throws Exception {
+        Long issueId = 1L;
+
+        when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
+            .thenThrow(new ClosedIssueUpdateException(issueId));
+
+        mockMvc.perform(put("/api/issues/{issueId}", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message")
+                .value("Issue with id " + issueId + " is closed and cannot be updated."));
+
+        verify(issueService).update(eq(issueId), any(UpdateIssueRequest.class));
     }
 }

@@ -11,3 +11,13 @@ Content-Type: application/json
   "status": "OPEN",
   "priority": "LOW"
 }
+
+### Issue aktualisieren
+PUT http://localhost:8080/api/issues/1
+Content-Type: application/json
+
+{
+  "title": "Demo Issue aktualisiert",
+  "description": "Beschreibung wurde geändert",
+  "priority": "MEDIUM"
+}

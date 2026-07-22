@@ -112,6 +112,84 @@ class IssueServiceTest {
         verifyNoInteractions(issueRepository);
     }
 
+    @Test
+    void update_updatesIssue_whenIssueExists() {
+        Long issueId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            IssueStatus.OPEN,
+            IssuePriority.LOW,
+            project
+        );
+        UpdateIssueRequest request = new UpdateIssueRequest(
+            "UpdatedTestTitle",
+            "UpdatedTestDescription",
+            IssuePriority.MEDIUM
+        );
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        Issue updatedIssue = issueService.update(issueId, request);
+
+        verify(issueRepository).findById(issueId);
+
+        assertEquals(request.title(), updatedIssue.getTitle());
+        assertEquals(request.description(), updatedIssue.getDescription());
+        assertEquals(request.priority(), updatedIssue.getPriority());
+    }
+
+    @Test
+    void update_throwsIssueNotFoundException_whenIssueDoesNotExist() {
+        Long issueId = 5L;
+        UpdateIssueRequest request = new UpdateIssueRequest(
+            "UpdatedTestTitle",
+            "UpdatedTestDescription",
+            IssuePriority.MEDIUM
+        );
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.empty());
+
+        assertIssueNotFound(issueId, () -> issueService.update(issueId, request));
+    }
+
+    @Test
+    void update_throwsClosedIssueUpdateException_whenIssueIsClosed() {
+        Long issueId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            IssueStatus.CLOSED,
+            IssuePriority.LOW,
+            project
+        );
+        UpdateIssueRequest request = new UpdateIssueRequest(
+            "UpdatedTestTitle",
+            "UpdatedTestDescription",
+            IssuePriority.MEDIUM
+        );
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        ClosedIssueUpdateException exception = assertThrows(
+            ClosedIssueUpdateException.class,
+            () -> issueService.update(issueId, request)
+        );
+
+        assertEquals(
+            "Issue with id " + issueId + " is closed and cannot be updated.",
+            exception.getMessage()
+        );
+        assertEquals("TestTitle", issue.getTitle());
+        assertEquals("TestDescription", issue.getDescription());
+        assertEquals(IssuePriority.LOW, issue.getPriority());
+    }
+
     private void assertIssueNotFound(Long issueId, Executable executable) {
         IssueNotFoundException exception = assertThrows(
             IssueNotFoundException.class,

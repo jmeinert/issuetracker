@@ -1,5 +1,6 @@
 package de.jmeinert.issuetracker.error;
 
+import de.jmeinert.issuetracker.issue.ClosedIssueUpdateException;
 import de.jmeinert.issuetracker.issue.IssueNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 
@@ -27,6 +28,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IssueNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleIssueNotFound(IssueNotFoundException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(ClosedIssueUpdateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleClosedIssueUpdateException(ClosedIssueUpdateException e) {
         return new ErrorResponse(e.getMessage());
     }
 
