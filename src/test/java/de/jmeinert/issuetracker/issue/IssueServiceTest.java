@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,6 +37,62 @@ class IssueServiceTest {
 
     @Captor
     private ArgumentCaptor<Issue> issueArgumentCaptor;
+
+    @Test
+    void findAllByProjectId_returnsAllIssuesOfProject_whenProjectExists() {
+        Long projectId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        List<Issue> issues = List.of(
+            new Issue(
+                "TestTitle",
+                "TestDescription",
+                IssueStatus.OPEN,
+                IssuePriority.LOW,
+                project
+            ),
+            new Issue(
+                "TestTitle2",
+                "TestDescription2",
+                IssueStatus.OPEN,
+                IssuePriority.HIGH,
+                project
+            )
+        );
+
+        when(projectService.findById(projectId))
+            .thenReturn(project);
+
+        when(issueRepository.findAllByProject(project))
+            .thenReturn(issues);
+
+        assertEquals(issues, issueService.findAllByProjectId(projectId));
+    }
+
+    @Test
+    void findAllByProjectId_returnsEmptyList_whenProjectExistsAndHasNoIssues() {
+        Long projectId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+
+        when(projectService.findById(projectId))
+            .thenReturn(project);
+
+        when(issueRepository.findAllByProject(project))
+            .thenReturn(List.of());
+
+        assertEquals(List.of(), issueService.findAllByProjectId(projectId));
+    }
+
+    @Test
+    void findAllByProjectId_throwsProjectNotFoundException_whenProjectDoesNotExist() {
+        Long projectId = 5L;
+
+        when(projectService.findById(projectId))
+            .thenThrow(new ProjectNotFoundException(projectId));
+
+        assertProjectNotFound(projectId, () -> issueService.findAllByProjectId(projectId));
+
+        verifyNoInteractions(issueRepository);
+    }
 
     @Test
     void findById_returnsIssue_whenIssueExists() {
@@ -104,11 +161,7 @@ class IssueServiceTest {
         when(projectService.findById(projectId))
             .thenThrow(new ProjectNotFoundException(projectId));
 
-        ProjectNotFoundException exception = assertThrows(
-            ProjectNotFoundException.class,
-            () -> issueService.create(projectId, request)
-        );
-        assertEquals("Project not found with id: " + projectId, exception.getMessage());
+        assertProjectNotFound(projectId, () -> issueService.create(projectId, request));
 
         verifyNoInteractions(issueRepository);
     }
@@ -231,5 +284,13 @@ class IssueServiceTest {
             executable
         );
         assertEquals("Issue not found with id: " + issueId, exception.getMessage());
+    }
+
+    private void assertProjectNotFound(Long projectId, Executable executable) {
+        ProjectNotFoundException exception = assertThrows(
+            ProjectNotFoundException.class,
+            executable
+        );
+        assertEquals("Project not found with id: " + projectId, exception.getMessage());
     }
 }

@@ -6,6 +6,8 @@ import de.jmeinert.issuetracker.project.ProjectService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Transactional(readOnly = true)
 public class IssueService {
@@ -20,6 +22,11 @@ public class IssueService {
     ) {
         this.issueRepository = issueRepository;
         this.projectService = projectService;
+    }
+
+    public List<Issue> findAllByProjectId(Long projectId) {
+        Project project = projectService.findById(projectId);
+        return issueRepository.findAllByProject(project);
     }
 
     public Issue findById(Long id) {

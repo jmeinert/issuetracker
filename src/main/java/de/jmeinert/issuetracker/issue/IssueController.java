@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 public class IssueController {
 
@@ -24,6 +26,13 @@ public class IssueController {
     @GetMapping("/api/issues/{issueId}")
     public IssueResponse getIssueById(@PathVariable Long issueId) {
         return IssueResponse.from(issueService.findById(issueId));
+    }
+
+    @GetMapping("/api/projects/{projectId}/issues")
+    public List<IssueResponse> getIssuesByProjectId(@PathVariable Long projectId) {
+        return issueService.findAllByProjectId(projectId).stream()
+            .map(IssueResponse::from)
+            .toList();
     }
 
     @PostMapping("/api/projects/{projectId}/issues")

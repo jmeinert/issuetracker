@@ -11,6 +11,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -71,6 +73,51 @@ class IssueControllerTest {
         mockMvc.perform(get("/api/issues/{issueId}", issueId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
+    }
+
+    @Test
+    void getIssuesByProjectId_returns200_whenProjectExists() throws Exception {
+        Long projectId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        ReflectionTestUtils.setField(project, "id", projectId);
+
+        List<Issue> issues = List.of(
+            new Issue(
+                "TestTitle",
+                "TestDescription",
+                IssueStatus.OPEN,
+                IssuePriority.LOW,
+                project
+            ),
+            new Issue(
+                "TestTitle2",
+                "TestDescription2",
+                IssueStatus.OPEN,
+                IssuePriority.HIGH,
+                project
+            )
+        );
+
+        when(issueService.findAllByProjectId(projectId))
+            .thenReturn(issues);
+
+        mockMvc.perform(get("/api/projects/{projectId}/issues", projectId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].title").value("TestTitle"))
+            .andExpect(jsonPath("$[0].description").value("TestDescription"))
+            .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void getIssuesByProjectId_returns404_whenProjectDoesNotExist() throws Exception {
+        Long projectId = 5L;
+
+        when(issueService.findAllByProjectId(projectId))
+            .thenThrow(new ProjectNotFoundException(projectId));
+
+        mockMvc.perform(get("/api/projects/{projectId}/issues", projectId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Project not found with id: " + projectId));
     }
 
     @Test
