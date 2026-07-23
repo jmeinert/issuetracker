@@ -1,5 +1,5 @@
 ### Issue per ID abrufen
-GET http://localhost:8080/api/issues/2
+GET http://localhost:8080/api/issues/1
 
 ### Issue erstellen
 POST http://localhost:8080/api/projects/1/issues
@@ -21,3 +21,6 @@ Content-Type: application/json
   "description": "Beschreibung wurde geändert",
   "priority": "MEDIUM"
 }
+
+### Issue löschen
+DELETE http://localhost:8080/api/issues/1

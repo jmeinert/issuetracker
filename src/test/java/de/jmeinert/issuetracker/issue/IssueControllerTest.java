@@ -13,9 +13,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -432,5 +434,28 @@ class IssueControllerTest {
                 .value("Issue with id " + issueId + " is closed and cannot be updated."));
 
         verify(issueService).update(eq(issueId), any(UpdateIssueRequest.class));
+    }
+
+    @Test
+    void deleteIssue_returns204_whenIssueExists() throws Exception {
+        Long issueId = 1L;
+
+        mockMvc.perform(delete("/api/issues/{issueId}", issueId))
+            .andExpect(status().isNoContent());
+
+        verify(issueService).delete(issueId);
+    }
+
+    @Test
+    void deleteIssue_returns404_whenIssueDoesNotExist() throws Exception {
+        Long issueId = 5L;
+
+        doThrow(new IssueNotFoundException(issueId))
+            .when(issueService)
+            .delete(issueId);
+
+        mockMvc.perform(delete("/api/issues/{issueId}", issueId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }
 }

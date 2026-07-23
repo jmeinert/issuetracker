@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -188,6 +189,40 @@ class IssueServiceTest {
         assertEquals("TestTitle", issue.getTitle());
         assertEquals("TestDescription", issue.getDescription());
         assertEquals(IssuePriority.LOW, issue.getPriority());
+    }
+
+    @Test
+    void delete_deletesIssue_whenIssueExists() {
+        Long issueId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            IssueStatus.OPEN,
+            IssuePriority.LOW,
+            project
+        );
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        issueService.delete(issueId);
+
+        verify(issueRepository).findById(issueId);
+        verify(issueRepository).delete(issue);
+    }
+
+    @Test
+    void delete_throwsIssueNotFoundException_whenIssueDoesNotExist() {
+        Long issueId = 5L;
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.empty());
+
+        assertIssueNotFound(issueId, () -> issueService.delete(issueId));
+
+        verify(issueRepository).findById(issueId);
+        verifyNoMoreInteractions(issueRepository);
     }
 
     private void assertIssueNotFound(Long issueId, Executable executable) {

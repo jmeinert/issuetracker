@@ -52,4 +52,10 @@ public class IssueService {
         issue.update(request.title(), request.description(), request.priority());
         return issue;
     }
+
+    @Transactional
+    public void delete(Long issueId) {
+        Issue issue = findById(issueId);
+        issueRepository.delete(issue);
+    }
 }

@@ -3,6 +3,7 @@ package de.jmeinert.issuetracker.issue;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,5 +35,11 @@ public class IssueController {
     @PutMapping("/api/issues/{issueId}")
     public IssueResponse updateIssue(@Valid @RequestBody UpdateIssueRequest request, @PathVariable Long issueId) {
         return IssueResponse.from(issueService.update(issueId, request));
+    }
+
+    @DeleteMapping("/api/issues/{issueId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteIssue(@PathVariable Long issueId) {
+        issueService.delete(issueId);
     }
 }
