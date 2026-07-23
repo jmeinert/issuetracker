@@ -56,7 +56,7 @@ public class IssueService {
             throw new ClosedIssueUpdateException(issueId);
         }
 
-        issue.update(request.title(), request.description(), request.priority());
+        issue.updateDetails(request.title(), request.description(), request.priority());
         return issue;
     }
 

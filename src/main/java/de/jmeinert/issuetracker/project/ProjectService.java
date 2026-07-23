@@ -34,7 +34,7 @@ public class ProjectService {
     @Transactional
     public Project update(Long id, String name, String description) {
         Project project = findById(id);
-        project.update(name, description);
+        project.updateDetails(name, description);
         return project;
     }
 

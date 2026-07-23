@@ -110,7 +110,7 @@ public class Issue {
         return updatedAt;
     }
 
-    public void update(String title, String description, IssuePriority priority) {
+    void updateDetails(String title, String description, IssuePriority priority) {
         this.title = title;
         this.description = description;
         this.priority = priority;

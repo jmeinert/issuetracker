@@ -70,7 +70,7 @@ public class Project {
         return updatedAt;
     }
 
-    public void update(String name, String description) {
+    void updateDetails(String name, String description) {
         this.name = name;
         this.description = description;
     }
