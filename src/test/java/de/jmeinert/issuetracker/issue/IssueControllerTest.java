@@ -144,7 +144,6 @@ class IssueControllerTest {
                 {
                     "title": "TestTitle",
                     "description": "TestDescription",
-                    "status": "OPEN",
                     "priority": "LOW"
                 }
                 """))
@@ -171,7 +170,6 @@ class IssueControllerTest {
                 {
                     "title": "TestTitle",
                     "description": "TestDescription",
-                    "status": "OPEN",
                     "priority": "LOW"
                 }
                 """))
@@ -187,7 +185,6 @@ class IssueControllerTest {
                 {
                     "title": "",
                     "description": "TestDescription",
-                    "status": "OPEN",
                     "priority": "LOW"
                 }
                 """))
@@ -208,7 +205,6 @@ class IssueControllerTest {
                 {
                     "title": "%s",
                     "description": "TestDescription",
-                    "status": "OPEN",
                     "priority": "LOW"
                 }
                 """.formatted(titleTooLong)))
@@ -229,7 +225,6 @@ class IssueControllerTest {
                 {
                     "title": "TestTitle",
                     "description": "%s",
-                    "status": "OPEN",
                     "priority": "LOW"
                 }
                 """.formatted(descriptionTooLong)))
@@ -241,55 +236,18 @@ class IssueControllerTest {
     }
 
     @Test
-    void createIssue_returns400_whenStatusIsMissing() throws Exception {
-        mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.status").value("must not be null"));
-
-        verifyNoInteractions(issueService);
-    }
-
-    @Test
     void createIssue_returns400_whenPriorityIsMissing() throws Exception {
         mockMvc.perform(post("/api/projects/1/issues")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
                     "title": "TestTitle",
-                    "description": "TestDescription",
-                    "status": "OPEN"
+                    "description": "TestDescription"
                 }
                 """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.priority").value("must not be null"));
-
-        verifyNoInteractions(issueService);
-    }
-
-    @Test
-    void createIssue_returns400_whenStatusIsInvalid() throws Exception {
-        mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "status": "TODO",
-                    "priority": "LOW"
-                }
-                """))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Invalid request body"));
 
         verifyNoInteractions(issueService);
     }
@@ -302,7 +260,6 @@ class IssueControllerTest {
                 {
                     "title": "TestTitle",
                     "description": "TestDescription",
-                    "status": "OPEN",
                     "priority": "EXTRAHIGH"
                 }
                 """))

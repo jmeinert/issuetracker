@@ -40,7 +40,7 @@ public class IssueService {
         Issue issue = new Issue(
             request.title(),
             request.description(),
-            request.status(),
+            IssueStatus.OPEN,
             request.priority(),
             project
         );

@@ -13,9 +13,6 @@ public record CreateIssueRequest(
     String description,
 
     @NotNull
-    IssueStatus status,
-
-    @NotNull
     IssuePriority priority
 ) {
 }

@@ -128,7 +128,6 @@ class IssueServiceTest {
         CreateIssueRequest request = new CreateIssueRequest(
             "TestTitle",
             "TestDescription",
-            IssueStatus.OPEN,
             IssuePriority.LOW
         );
         Project project = new Project("TestName", "TestDescription");
@@ -154,7 +153,6 @@ class IssueServiceTest {
         CreateIssueRequest request = new CreateIssueRequest(
             "TestTitle",
             "TestDescription",
-            IssueStatus.OPEN,
             IssuePriority.LOW
         );
 
