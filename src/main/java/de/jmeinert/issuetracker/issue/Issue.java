@@ -115,4 +115,8 @@ public class Issue {
         this.description = description;
         this.priority = priority;
     }
+
+    void changeStatusTo(IssueStatus status) {
+        this.status = status;
+    }
 }

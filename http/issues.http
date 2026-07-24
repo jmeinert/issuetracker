@@ -24,5 +24,13 @@ Content-Type: application/json
   "priority": "MEDIUM"
 }
 
+### Status eines Issues ändern
+PATCH http://localhost:8080/api/issues/1/status
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+
 ### Issue löschen
 DELETE http://localhost:8080/api/issues/1

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -438,6 +439,115 @@ class IssueControllerTest {
                 .value("Issue with id " + issueId + " is closed and cannot be updated."));
 
         verify(issueService).update(eq(issueId), any(UpdateIssueRequest.class));
+    }
+
+    @Test
+    void changeIssueStatus_returns200_whenIssueExistsAndTransitionIsAllowed() throws Exception {
+        Long issueId = 1L;
+        Long projectId = 2L;
+
+        Project project = new Project("TestName", "TestDescription");
+        ReflectionTestUtils.setField(project, "id", projectId);
+
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            IssueStatus.IN_PROGRESS,
+            IssuePriority.MEDIUM,
+            project
+        );
+
+        when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
+            .thenReturn(issue);
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "IN_PROGRESS"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+
+        verify(issueService).changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class));
+    }
+
+    @Test
+    void changeIssueStatus_returns404_whenIssueDoesNotExist() throws Exception {
+        Long issueId = 1L;
+
+        when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
+            .thenThrow(new IssueNotFoundException(issueId));
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "IN_PROGRESS"
+                }
+                """))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
+    }
+
+    @Test
+    void changeIssueStatus_returns409_whenTransitionIsInvalid() throws Exception {
+        Long issueId = 1L;
+        IssueStatus currentStatus = IssueStatus.OPEN;
+        IssueStatus targetStatus = IssueStatus.OPEN;
+        List<IssueStatus> allowedStatuses = List.of(IssueStatus.IN_PROGRESS);
+
+        InvalidIssueStatusTransitionException exception = new InvalidIssueStatusTransitionException(
+            issueId,
+            currentStatus,
+            targetStatus,
+            allowedStatuses
+        );
+
+        when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
+            .thenThrow(exception);
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "OPEN"
+                }
+                """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value(exception.getMessage()));
+
+        verify(issueService).changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class));
+    }
+
+    @Test
+    void changeIssueStatus_returns400_whenStatusIsMissing() throws Exception {
+        mockMvc.perform(patch("/api/issues/1/status")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {}
+                """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.status").value("must not be null"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void changeIssueStatus_returns400_whenStatusIsInvalid() throws Exception {
+        mockMvc.perform(patch("/api/issues/1/status")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "WAITING"
+                }
+                """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Invalid request body"));
+
+        verifyNoInteractions(issueService);
     }
 
     @Test

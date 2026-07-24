@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -44,6 +45,14 @@ public class IssueController {
     @PutMapping("/api/issues/{issueId}")
     public IssueResponse updateIssue(@Valid @RequestBody UpdateIssueRequest request, @PathVariable Long issueId) {
         return IssueResponse.from(issueService.update(issueId, request));
+    }
+
+    @PatchMapping("/api/issues/{issueId}/status")
+    public IssueResponse changeIssueStatus(
+        @Valid @RequestBody ChangeIssueStatusRequest request,
+        @PathVariable Long issueId
+    ) {
+        return IssueResponse.from(issueService.changeStatus(issueId, request));
     }
 
     @DeleteMapping("/api/issues/{issueId}")

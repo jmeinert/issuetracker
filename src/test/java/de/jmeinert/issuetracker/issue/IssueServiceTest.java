@@ -7,6 +7,8 @@ import de.jmeinert.issuetracker.project.ProjectService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -240,6 +242,88 @@ class IssueServiceTest {
         assertEquals("TestTitle", issue.getTitle());
         assertEquals("TestDescription", issue.getDescription());
         assertEquals(IssuePriority.LOW, issue.getPriority());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "OPEN,        IN_PROGRESS",
+        "IN_PROGRESS, RESOLVED",
+        "IN_PROGRESS, CLOSED",
+        "RESOLVED,    IN_PROGRESS",
+        "RESOLVED,    CLOSED",
+        "CLOSED,      OPEN"
+    })
+    void changeStatus_changesStatus_whenTransitionIsAllowed(
+        IssueStatus currentStatus,
+        IssueStatus targetStatus
+    ) {
+        Long issueId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            currentStatus,
+            IssuePriority.LOW,
+            project
+        );
+        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        Issue changedIssue = issueService.changeStatus(issueId, request);
+
+        assertEquals(targetStatus, changedIssue.getStatus());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "OPEN,        OPEN",
+        "OPEN,        RESOLVED",
+        "OPEN,        CLOSED",
+        "IN_PROGRESS, OPEN",
+        "IN_PROGRESS, IN_PROGRESS",
+        "RESOLVED,    OPEN",
+        "RESOLVED,    RESOLVED",
+        "CLOSED,      IN_PROGRESS",
+        "CLOSED,      RESOLVED",
+        "CLOSED,      CLOSED"
+    })
+    void changeStatus_throwsInvalidIssueStatusTransitionException_whenTransitionIsInvalid(
+        IssueStatus currentStatus,
+        IssueStatus targetStatus
+    ) {
+        Long issueId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new Issue(
+            "TestTitle",
+            "TestDescription",
+            currentStatus,
+            IssuePriority.LOW,
+            project
+        );
+        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        assertThrows(
+            InvalidIssueStatusTransitionException.class,
+            () -> issueService.changeStatus(issueId, request)
+        );
+
+        assertEquals(currentStatus, issue.getStatus());
+    }
+
+    @Test
+    void changeStatus_throwsIssueNotFoundException_whenIssueDoesNotExist() {
+        Long issueId = 5L;
+        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(IssueStatus.IN_PROGRESS);
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.empty());
+
+        assertIssueNotFound(issueId, () -> issueService.changeStatus(issueId, request));
     }
 
     @Test
