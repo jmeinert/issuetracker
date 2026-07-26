@@ -9,4 +9,6 @@ import java.util.List;
 public interface IssueRepository extends JpaRepository<Issue, Long> {
 
     List<Issue> findAllByProject(Project project);
+
+    boolean existsByProject(Project project);
 }

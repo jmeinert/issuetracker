@@ -4,6 +4,7 @@ import de.jmeinert.issuetracker.issue.ClosedIssueUpdateException;
 import de.jmeinert.issuetracker.issue.InvalidIssueStatusTransitionException;
 import de.jmeinert.issuetracker.issue.IssueNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
+import de.jmeinert.issuetracker.project.ProjectHasIssuesException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,6 +24,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProjectNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleProjectNotFound(ProjectNotFoundException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(ProjectHasIssuesException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleProjectHasIssuesException(ProjectHasIssuesException e) {
         return new ErrorResponse(e.getMessage());
     }
 

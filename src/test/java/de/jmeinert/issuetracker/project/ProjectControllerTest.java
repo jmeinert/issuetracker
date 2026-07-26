@@ -208,4 +208,16 @@ class ProjectControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Project not found with id: 5"));
     }
+
+    @Test
+    void deleteProject_returns409_whenProjectHasIssues() throws Exception {
+        doThrow(new ProjectHasIssuesException(1L))
+            .when(projectService)
+            .delete(1L);
+
+        mockMvc.perform(delete("/api/projects/1"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message")
+                .value("Project with id 1 cannot be deleted because it still contains issues."));
+    }
 }

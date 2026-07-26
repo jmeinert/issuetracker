@@ -1,5 +1,7 @@
 package de.jmeinert.issuetracker.project;
 
+import de.jmeinert.issuetracker.issue.IssueRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
@@ -14,6 +16,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +25,9 @@ class ProjectServiceTest {
 
     @Mock
     private ProjectRepository projectRepository;
+
+    @Mock
+    private IssueRepository issueRepository;
 
     @InjectMocks
     private ProjectService projectService;
@@ -90,12 +96,15 @@ class ProjectServiceTest {
     }
 
     @Test
-    void delete_deletesProject_whenProjectExists() {
+    void delete_deletesProject_whenProjectExistsAndHasNoIssues() {
         Long id = 1L;
         Project project = new Project("Testname", "TestDescription");
 
         when(projectRepository.findById(id))
             .thenReturn(Optional.of(project));
+
+        when(issueRepository.existsByProject(project))
+            .thenReturn(false);
 
         projectService.delete(id);
 
@@ -111,6 +120,31 @@ class ProjectServiceTest {
             .thenReturn(Optional.empty());
 
         assertProjectNotFound(id, () -> projectService.delete(id));
+
+        verify(projectRepository).findById(id);
+        verifyNoMoreInteractions(projectRepository);
+        verifyNoInteractions(issueRepository);
+    }
+
+    @Test
+    void delete_throwsProjectHasIssuesException_whenProjectHasIssues() {
+        Long id = 1L;
+        Project project = new Project("Testname", "TestDescription");
+
+        when(projectRepository.findById(id))
+            .thenReturn(Optional.of(project));
+
+        when(issueRepository.existsByProject(project))
+            .thenReturn(true);
+
+        ProjectHasIssuesException exception = assertThrows(
+            ProjectHasIssuesException.class,
+            () -> projectService.delete(id)
+        );
+        assertEquals(
+            "Project with id " + id + " cannot be deleted because it still contains issues.",
+            exception.getMessage()
+        );
 
         verify(projectRepository).findById(id);
         verifyNoMoreInteractions(projectRepository);

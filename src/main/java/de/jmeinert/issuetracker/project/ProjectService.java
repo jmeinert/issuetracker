@@ -1,5 +1,7 @@
 package de.jmeinert.issuetracker.project;
 
+import de.jmeinert.issuetracker.issue.IssueRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,8 +13,14 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    private final IssueRepository issueRepository;
+
+    public ProjectService(
+        ProjectRepository projectRepository,
+        IssueRepository issueRepository
+    ) {
         this.projectRepository = projectRepository;
+        this.issueRepository = issueRepository;
     }
 
     public List<Project> findAll() {
@@ -41,6 +49,11 @@ public class ProjectService {
     @Transactional
     public void delete(Long id) {
         Project project = findById(id);
+
+        if (issueRepository.existsByProject(project)) {
+            throw new ProjectHasIssuesException(id);
+        }
+
         projectRepository.delete(project);
     }
 }
