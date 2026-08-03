@@ -1,10 +1,3 @@
 spring:
   application:
     name: issuetracker
-
-  datasource:
-    url: jdbc:h2:mem:issuetracker
-
-  h2:
-    console:
-      enabled: true
