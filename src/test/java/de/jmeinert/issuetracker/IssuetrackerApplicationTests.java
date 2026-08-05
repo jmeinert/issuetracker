@@ -1,11 +1,15 @@
 package de.jmeinert.issuetracker;
 
+import de.jmeinert.issuetracker.config.TestcontainersConfiguration;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles("test")
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
 class IssuetrackerApplicationTests {
 
     @Test
