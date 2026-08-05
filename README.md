@@ -8,9 +8,9 @@ of professional web development with PHP and TYPO3.
 My goal was to go beyond a minimal CRUD demo by adding realistic domain rules, clear API boundaries and automated tests.
 
 > [!NOTE]
-> **Work in progress:** The implemented scope covers project and issue management using an in-memory H2 database.
-> Data is not persisted between application restarts.
-> PostgreSQL persistence, query capabilities, security and deployment infrastructure are planned.
+> **Work in progress:** The implemented scope covers project and issue management with persistent PostgreSQL storage,
+> Flyway-managed database migrations and integration tests against PostgreSQL using Testcontainers.
+> Filtering, security, continuous integration and deployment infrastructure are planned.
 
 ## Features
 
@@ -68,11 +68,16 @@ CRITICAL
 ## Tech stack
 
 * Java 21
-* Spring Boot 4.1 with Spring Web MVC and Spring Data JPA
-* Hibernate and H2
+* Spring Boot 4.1
+* Spring Web MVC and Spring Data JPA
+* Hibernate
+* PostgreSQL 18
+* Flyway
+* Docker Compose
 * Jakarta Bean Validation
 * Maven
-* JUnit 5, Mockito, MockMvc
+* JUnit 5, Mockito and MockMvc
+* Testcontainers
 
 ## Architecture
 
@@ -89,21 +94,71 @@ The service layer is covered by unit tests using JUnit 5 and Mockito.
 Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
 Parameterized service tests cover all allowed and rejected issue status transitions.
 
+Repository integration tests run against PostgreSQL using Testcontainers. Flyway creates the database schema before
+Hibernate validates the JPA mappings. Docker must be available, but no manually running PostgreSQL database is required.
+
+Run the complete test suite:
+
 ```bash
 ./mvnw test
 ```
 
+Run the complete build verification:
+
+```bash
+./mvnw verify
+```
+
 ## Getting started
 
-With Java 21 installed, clone the repository and start the application:
+### Prerequisites
+
+* Java 21
+* Docker with Docker Compose
+
+Clone the repository and create the local environment file:
 
 ```bash
 git clone https://github.com/jmeinert/issuetracker.git
 cd issuetracker
-./mvnw spring-boot:run
+cp .env.example .env
 ```
 
+### Start PostgreSQL container
+
+```bash
+docker compose up -d postgres
+```
+
+### Start application from CLI (Bash)
+
+```bash
+set -a
+source .env
+set +a
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+### Start application from IntelliJ
+
+Activate the `local` Spring profile and provide the variables from `.env` in the run configuration.
+Then run `IssuetrackerApplication`.
+
 The API is available at `http://localhost:8080`.
+
+### Stop or reset PostgreSQL container
+
+Stop PostgreSQL while retaining its data:
+
+```bash
+docker compose down
+```
+
+Stop PostgreSQL and delete its data:
+
+```bash
+docker compose down -v
+```
 
 ## API endpoints
 
@@ -130,7 +185,7 @@ The API is available at `http://localhost:8080`.
 
 ## Example requests
 
-The examples assume a freshly started application and should be run in order.
+The examples assume an empty database and should be run in order.
 
 ### Create a project
 
@@ -138,8 +193,8 @@ The examples assume a freshly started application and should be run in order.
 curl -X POST http://localhost:8080/api/projects \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Issue Tracker",
-    "description": "Development of a project and issue management API"
+    "name": "Customer Portal",
+    "description": "Improvements to the customer self-service portal"
   }'
 ```
 
@@ -148,8 +203,8 @@ Example response:
 ```json
 {
   "id": 1,
-  "name": "Issue Tracker",
-  "description": "Development of a project and issue management API",
+  "name": "Customer Portal",
+  "description": "Improvements to the customer self-service portal",
   "createdAt": "2026-07-27T12:00:00Z",
   "updatedAt": "2026-07-27T12:00:00Z"
 }
@@ -161,8 +216,8 @@ Example response:
 curl -X POST http://localhost:8080/api/projects/1/issues \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Add PostgreSQL support",
-    "description": "Replace the in-memory database with PostgreSQL.",
+    "title": "Fix mobile navigation",
+    "description": "The navigation menu does not close after selecting a link on small screens.",
     "priority": "HIGH"
   }'
 ```
@@ -183,11 +238,8 @@ curl -X PATCH http://localhost:8080/api/issues/1/status \
 
 Planned improvements include:
 
-* [ ] PostgreSQL database
-* [ ] Database migrations with Flyway
 * [ ] Filtering, sorting and pagination
 * [ ] Authentication and authorization with Spring Security
-* [ ] Docker and Docker Compose setup
-* [ ] Integration tests with Testcontainers
 * [ ] Continuous integration with GitHub Actions
 * [ ] OpenAPI documentation
+* [ ] Containerized application deployment
