@@ -43,4 +43,21 @@ class ProjectRepositoryTest {
         assertNotNull(persistedProject.getCreatedAt());
         assertNotNull(persistedProject.getUpdatedAt());
     }
+
+    @Test
+    void save_acceptsMaximumFieldLengths() {
+        String name = "a".repeat(150);
+        String description = "a".repeat(1000);
+
+        Project project = new Project(name, description);
+        projectRepository.saveAndFlush(project);
+
+        entityManager.clear();
+
+        Project persistedProject = projectRepository.findById(project.getId())
+            .orElseThrow();
+
+        assertEquals(name, persistedProject.getName());
+        assertEquals(description, persistedProject.getDescription());
+    }
 }
