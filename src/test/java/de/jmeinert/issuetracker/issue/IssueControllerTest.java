@@ -6,6 +6,11 @@ import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -35,6 +40,113 @@ class IssueControllerTest {
 
     @MockitoBean
     private IssueService issueService;
+
+    @Test
+    void getIssues_returns200_whenPaginationParametersAreNotProvided() throws Exception {
+        Pageable pageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc("createdAt"))
+        );
+        Page<Issue> emptyPage = Page.empty(pageable);
+
+        when(issueService.findAll(pageable))
+            .thenReturn(emptyPage);
+
+        mockMvc.perform(get("/api/issues"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isEmpty())
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(20));
+    }
+
+    @Test
+    void getIssues_returns200_whenCustomPaginationAndSortingAreRequested() throws Exception {
+        Long projectId = 1L;
+        Project project = new Project("TestName", "TestDescription");
+        ReflectionTestUtils.setField(project, "id", projectId);
+
+        List<Issue> issues = List.of(
+            new Issue(
+                "TestTitle",
+                "TestDescription",
+                IssueStatus.OPEN,
+                IssuePriority.LOW,
+                project
+            ),
+            new Issue(
+                "TestTitle2",
+                "TestDescription2",
+                IssueStatus.OPEN,
+                IssuePriority.LOW,
+                project
+            )
+        );
+        Pageable pageable = PageRequest.of(
+            1,
+            1,
+            Sort.by(Sort.Order.asc("title"))
+        );
+        Page<Issue> issuePage = new PageImpl<>(
+            List.of(issues.get(1)),
+            pageable,
+            issues.size()
+        );
+
+        when(issueService.findAll(pageable))
+            .thenReturn(issuePage);
+
+        mockMvc.perform(get("/api/issues?page=1&size=1&sort=title,asc"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].title").value("TestTitle2"))
+            .andExpect(jsonPath("$.content[0].description").value("TestDescription2"))
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.page").value(1))
+            .andExpect(jsonPath("$.size").value(1))
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.first").value(false))
+            .andExpect(jsonPath("$.last").value(true));
+    }
+
+    @Test
+    void getIssues_returns200WithCappedPageSize_whenRequestedSizeExceedsMaximum() throws Exception {
+        Pageable pageable = PageRequest.of(
+            0,
+            100,
+            Sort.by(Sort.Order.desc("createdAt"))
+        );
+        Page<Issue> emptyPage = Page.empty(pageable);
+
+        when(issueService.findAll(pageable))
+            .thenReturn(emptyPage);
+
+        mockMvc.perform(get("/api/issues?size=101"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.size").value(100));
+    }
+
+    @Test
+    void getIssues_returns400_whenSortFieldIsUnsupported() throws Exception {
+        String invalidSortField = "priority";
+        Pageable pageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.asc(invalidSortField))
+        );
+
+        InvalidSortFieldException exception = new InvalidSortFieldException(
+            invalidSortField,
+            List.of("createdAt", "updatedAt", "title")
+        );
+
+        when(issueService.findAll(pageable))
+            .thenThrow(exception);
+
+        mockMvc.perform(get("/api/issues?sort=" + invalidSortField + ",asc"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value(exception.getMessage()));
+    }
 
     @Test
     void getIssueById_returns200_whenIssueExists() throws Exception {
@@ -98,22 +210,38 @@ class IssueControllerTest {
                 project
             )
         );
+        Pageable pageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+        Page<Issue> issuePage = new PageImpl<>(
+            issues,
+            pageable,
+            issues.size()
+        );
 
-        when(issueService.findAllByProjectId(projectId))
-            .thenReturn(issues);
+        when(issueService.findAllByProjectId(projectId, pageable))
+            .thenReturn(issuePage);
 
         mockMvc.perform(get("/api/projects/{projectId}/issues", projectId))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].title").value("TestTitle"))
-            .andExpect(jsonPath("$[0].description").value("TestDescription"))
-            .andExpect(jsonPath("$.length()").value(2));
+            .andExpect(jsonPath("$.content[0].title").value("TestTitle"))
+            .andExpect(jsonPath("$.content[0].description").value("TestDescription"))
+            .andExpect(jsonPath("$.content.length()").value(2))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(20))
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.totalPages").value(1))
+            .andExpect(jsonPath("$.first").value(true))
+            .andExpect(jsonPath("$.last").value(true));
     }
 
     @Test
     void getIssuesByProjectId_returns404_whenProjectDoesNotExist() throws Exception {
         Long projectId = 5L;
 
-        when(issueService.findAllByProjectId(projectId))
+        when(issueService.findAllByProjectId(eq(projectId), any(Pageable.class)))
             .thenThrow(new ProjectNotFoundException(projectId));
 
         mockMvc.perform(get("/api/projects/{projectId}/issues", projectId))

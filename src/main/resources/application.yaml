@@ -1,3 +1,8 @@
 spring:
   application:
     name: issuetracker
+
+  data:
+    web:
+      pageable:
+        max-page-size: 100
