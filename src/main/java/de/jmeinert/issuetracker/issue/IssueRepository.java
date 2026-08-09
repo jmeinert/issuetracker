@@ -2,13 +2,13 @@ package de.jmeinert.issuetracker.issue;
 
 import de.jmeinert.issuetracker.project.Project;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
 
 public interface IssueRepository extends JpaRepository<Issue, Long> {
 
-    List<Issue> findAllByProject(Project project);
+    Page<Issue> findAllByProject(Project project, Pageable pageable);
 
     boolean existsByProject(Project project);
 }

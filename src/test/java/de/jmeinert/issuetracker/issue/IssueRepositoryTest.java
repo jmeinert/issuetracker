@@ -12,6 +12,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -33,41 +37,88 @@ class IssueRepositoryTest {
     private EntityManager entityManager;
 
     @Test
-    void findAllByProject_returnsIssuesOfGivenProject() {
+    void findAllByProject_returnsPageOfIssuesOfGivenProject() {
         Project project1 = new Project("TestName", "TestDescription");
         Project project2 = new Project("TestName2", "TestDescription2");
 
         Issue issue1 = new Issue(
-            "TestTitle",
+            "Charlie",
             "TestDescription",
             IssueStatus.OPEN,
             IssuePriority.LOW,
             project1
         );
         Issue issue2 = new Issue(
-            "TestTitle2",
+            "Alpha",
             "TestDescription2",
             IssueStatus.IN_PROGRESS,
             IssuePriority.MEDIUM,
             project1
         );
         Issue issue3 = new Issue(
-            "TestTitle3",
+            "Bravo",
             "TestDescription3",
+            IssueStatus.RESOLVED,
+            IssuePriority.HIGH,
+            project1
+        );
+        Issue issue4 = new Issue(
+            "Tango",
+            "TestDescription4",
             IssueStatus.RESOLVED,
             IssuePriority.HIGH,
             project2
         );
 
+        Pageable pageable = PageRequest.of(
+            2,
+            1,
+            Sort.by(Sort.Order.asc("title"))
+        );
+
         projectRepository.saveAllAndFlush(List.of(project1, project2));
-        issueRepository.saveAllAndFlush(List.of(issue1, issue2, issue3));
+        issueRepository.saveAllAndFlush(List.of(issue1, issue2, issue3, issue4));
         entityManager.clear();
 
-        List<Issue> issuesOfProject1 = issueRepository.findAllByProject(project1);
+        Page<Issue> issuesOfProject1 = issueRepository.findAllByProject(project1, pageable);
 
         assertThat(issuesOfProject1)
             .extracting(Issue::getId)
-            .containsExactlyInAnyOrder(issue1.getId(), issue2.getId());
+            .containsExactly(issue1.getId());
+        assertThat(issuesOfProject1.getNumber())
+            .isEqualTo(2);
+        assertThat(issuesOfProject1.getSize())
+            .isEqualTo(1);
+        assertThat(issuesOfProject1.getTotalElements())
+            .isEqualTo(3);
+        assertThat(issuesOfProject1.getTotalPages())
+            .isEqualTo(3);
+        assertThat(issuesOfProject1.isFirst()).isFalse();
+        assertThat(issuesOfProject1.isLast()).isTrue();
+    }
+
+    @Test
+    void findAllByProject_returnsEmptyPage_whenProjectHasNoIssues() {
+        Project project = new Project("TestName", "TestDescription");
+
+        Pageable pageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc("createdAt"))
+        );
+
+        projectRepository.saveAndFlush(project);
+        entityManager.clear();
+
+        Page<Issue> issuesOfProject = issueRepository.findAllByProject(project, pageable);
+
+        assertThat(issuesOfProject.getContent()).isEmpty();
+        assertThat(issuesOfProject.getNumber()).isZero();
+        assertThat(issuesOfProject.getSize()).isEqualTo(20);
+        assertThat(issuesOfProject.getTotalElements()).isZero();
+        assertThat(issuesOfProject.getTotalPages()).isZero();
+        assertThat(issuesOfProject.isFirst()).isTrue();
+        assertThat(issuesOfProject.isLast()).isTrue();
     }
 
     @Test

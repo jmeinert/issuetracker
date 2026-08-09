@@ -1,7 +1,12 @@
 package de.jmeinert.issuetracker.issue;
 
+import de.jmeinert.issuetracker.pagination.PageResponse;
+
 import jakarta.validation.Valid;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,8 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 public class IssueController {
 
@@ -24,16 +27,30 @@ public class IssueController {
         this.issueService = issueService;
     }
 
+    @GetMapping("/api/issues")
+    public PageResponse<IssueResponse> getIssues(
+        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+        Pageable pageable
+    ) {
+        return PageResponse.from(
+            issueService.findAll(pageable).map(IssueResponse::from)
+        );
+    }
+
     @GetMapping("/api/issues/{issueId}")
     public IssueResponse getIssueById(@PathVariable Long issueId) {
         return IssueResponse.from(issueService.findById(issueId));
     }
 
     @GetMapping("/api/projects/{projectId}/issues")
-    public List<IssueResponse> getIssuesByProjectId(@PathVariable Long projectId) {
-        return issueService.findAllByProjectId(projectId).stream()
-            .map(IssueResponse::from)
-            .toList();
+    public PageResponse<IssueResponse> getIssuesByProjectId(
+        @PathVariable Long projectId,
+        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+        Pageable pageable
+    ) {
+        return PageResponse.from(
+            issueService.findAllByProjectId(projectId, pageable).map(IssueResponse::from)
+        );
     }
 
     @PostMapping("/api/projects/{projectId}/issues")

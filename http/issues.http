@@ -1,3 +1,9 @@
+### Issues mit Pagination abrufen
+GET http://localhost:8080/api/issues?page=0&size=20
+
+### Issues sortiert abrufen
+GET http://localhost:8080/api/issues?sort=title,asc
+
 ### Alle Issues eines Projektes abrufen
 GET http://localhost:8080/api/projects/1/issues
 

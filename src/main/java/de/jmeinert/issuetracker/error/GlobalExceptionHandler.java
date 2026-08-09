@@ -2,6 +2,7 @@ package de.jmeinert.issuetracker.error;
 
 import de.jmeinert.issuetracker.issue.ClosedIssueUpdateException;
 import de.jmeinert.issuetracker.issue.InvalidIssueStatusTransitionException;
+import de.jmeinert.issuetracker.issue.InvalidSortFieldException;
 import de.jmeinert.issuetracker.issue.IssueNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectHasIssuesException;
@@ -48,6 +49,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidIssueStatusTransitionException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleInvalidIssueStatusTransitionException(InvalidIssueStatusTransitionException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSortFieldException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleInvalidSortFieldException(InvalidSortFieldException e) {
         return new ErrorResponse(e.getMessage());
     }
 

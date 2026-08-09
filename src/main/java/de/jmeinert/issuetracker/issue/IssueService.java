@@ -3,6 +3,10 @@ package de.jmeinert.issuetracker.issue;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectService;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +24,8 @@ public class IssueService {
         IssueStatus.CLOSED, List.of(IssueStatus.OPEN)
     );
 
+    private static final List<String> ALLOWED_SORT_FIELDS = List.of("createdAt", "updatedAt", "title");
+
     private final IssueRepository issueRepository;
 
     private final ProjectService projectService;
@@ -32,9 +38,13 @@ public class IssueService {
         this.projectService = projectService;
     }
 
-    public List<Issue> findAllByProjectId(Long projectId) {
+    public Page<Issue> findAll(Pageable pageable) {
+        return issueRepository.findAll(getValidatedPageable(pageable));
+    }
+
+    public Page<Issue> findAllByProjectId(Long projectId, Pageable pageable) {
         Project project = projectService.findById(projectId);
-        return issueRepository.findAllByProject(project);
+        return issueRepository.findAllByProject(project, getValidatedPageable(pageable));
     }
 
     public Issue findById(Long id) {
@@ -91,5 +101,24 @@ public class IssueService {
     public void delete(Long issueId) {
         Issue issue = findById(issueId);
         issueRepository.delete(issue);
+    }
+
+    private Pageable getValidatedPageable(Pageable pageable) {
+        for (Sort.Order order : pageable.getSort()) {
+            if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new InvalidSortFieldException(order.getProperty(), ALLOWED_SORT_FIELDS);
+            }
+        }
+
+        // Add 'id' as a secondary sort field in case issues have the same primary sort field
+        Sort stableSort = pageable.getSort().and(
+            Sort.by(Sort.Order.asc("id"))
+        );
+
+        return PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            stableSort
+        );
     }
 }

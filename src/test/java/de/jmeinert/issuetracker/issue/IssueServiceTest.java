@@ -9,11 +9,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,8 +46,53 @@ class IssueServiceTest {
     @Captor
     private ArgumentCaptor<Issue> issueArgumentCaptor;
 
+    @ParameterizedTest
+    @ValueSource(strings = {"createdAt", "updatedAt", "title"})
+    void findAll_returnsPage_whenSortFieldIsSupported(String sortField) {
+        Pageable requestedPageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc(sortField))
+        );
+        Pageable validatedPageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(
+                Sort.Order.desc(sortField),
+                Sort.Order.asc("id")
+            )
+        );
+        Page<Issue> expectedPage = Page.empty(validatedPageable);
+
+        when(issueRepository.findAll(validatedPageable))
+            .thenReturn(expectedPage);
+
+        assertEquals(expectedPage, issueService.findAll(requestedPageable));
+    }
+
     @Test
-    void findAllByProjectId_returnsAllIssuesOfProject_whenProjectExists() {
+    void findAll_throwsInvalidSortFieldException_whenSortFieldIsUnsupported() {
+        String invalidSortField = "priority";
+        Pageable requestedPageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc(invalidSortField))
+        );
+
+        InvalidSortFieldException exception = assertThrows(
+            InvalidSortFieldException.class,
+            () -> issueService.findAll(requestedPageable)
+        );
+        assertEquals(
+            "Sort field '" + invalidSortField + "' is invalid. Allowed sort fields: createdAt, updatedAt, title.",
+            exception.getMessage()
+        );
+
+        verifyNoInteractions(issueRepository);
+    }
+
+    @Test
+    void findAllByProjectId_returnsPageOfIssuesOfProject_whenProjectExists() {
         Long projectId = 1L;
         Project project = new Project("TestName", "TestDescription");
         List<Issue> issues = List.of(
@@ -60,38 +111,47 @@ class IssueServiceTest {
                 project
             )
         );
+        Pageable requestedPageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc("createdAt"))
+        );
+        Pageable validatedPageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(
+                Sort.Order.desc("createdAt"),
+                Sort.Order.asc("id")
+            )
+        );
+        Page<Issue> issuePage = new PageImpl<>(
+            issues,
+            validatedPageable,
+            issues.size()
+        );
 
         when(projectService.findById(projectId))
             .thenReturn(project);
 
-        when(issueRepository.findAllByProject(project))
-            .thenReturn(issues);
+        when(issueRepository.findAllByProject(project, validatedPageable))
+            .thenReturn(issuePage);
 
-        assertEquals(issues, issueService.findAllByProjectId(projectId));
-    }
-
-    @Test
-    void findAllByProjectId_returnsEmptyList_whenProjectExistsAndHasNoIssues() {
-        Long projectId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-
-        when(projectService.findById(projectId))
-            .thenReturn(project);
-
-        when(issueRepository.findAllByProject(project))
-            .thenReturn(List.of());
-
-        assertEquals(List.of(), issueService.findAllByProjectId(projectId));
+        assertEquals(issuePage, issueService.findAllByProjectId(projectId, requestedPageable));
     }
 
     @Test
     void findAllByProjectId_throwsProjectNotFoundException_whenProjectDoesNotExist() {
         Long projectId = 5L;
+        Pageable requestedPageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc("createdAt"))
+        );
 
         when(projectService.findById(projectId))
             .thenThrow(new ProjectNotFoundException(projectId));
 
-        assertProjectNotFound(projectId, () -> issueService.findAllByProjectId(projectId));
+        assertProjectNotFound(projectId, () -> issueService.findAllByProjectId(projectId, requestedPageable));
 
         verifyNoInteractions(issueRepository);
     }
