@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,8 +39,20 @@ public class IssueService {
         this.projectService = projectService;
     }
 
-    public Page<Issue> findAll(Pageable pageable) {
-        return issueRepository.findAll(getValidatedPageable(pageable));
+    public Page<Issue> findAll(IssueFilter filter, Pageable pageable) {
+        Specification<Issue> specification = Specification.unrestricted();
+
+        if (filter.projectId() != null) {
+            specification = specification.and(IssueSpecifications.hasProjectId(filter.projectId()));
+        }
+        if (filter.status() != null) {
+            specification = specification.and(IssueSpecifications.hasStatus(filter.status()));
+        }
+        if (filter.priority() != null) {
+            specification = specification.and(IssueSpecifications.hasPriority(filter.priority()));
+        }
+
+        return issueRepository.findAll(specification, getValidatedPageable(pageable));
     }
 
     public Page<Issue> findAllByProjectId(Long projectId, Pageable pageable) {

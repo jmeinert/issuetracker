@@ -50,7 +50,7 @@ class IssueControllerTest {
         );
         Page<Issue> emptyPage = Page.empty(pageable);
 
-        when(issueService.findAll(pageable))
+        when(issueService.findAll(IssueFilter.empty(), pageable))
             .thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/issues"))
@@ -93,7 +93,7 @@ class IssueControllerTest {
             issues.size()
         );
 
-        when(issueService.findAll(pageable))
+        when(issueService.findAll(IssueFilter.empty(), pageable))
             .thenReturn(issuePage);
 
         mockMvc.perform(get("/api/issues?page=1&size=1&sort=title,asc"))
@@ -118,12 +118,29 @@ class IssueControllerTest {
         );
         Page<Issue> emptyPage = Page.empty(pageable);
 
-        when(issueService.findAll(pageable))
+        when(issueService.findAll(IssueFilter.empty(), pageable))
             .thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/issues?size=101"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.size").value(100));
+    }
+
+    @Test
+    void getIssues_returns200_whenFilterParametersAreProvided() throws Exception {
+        Pageable pageable = PageRequest.of(
+            0,
+            20,
+            Sort.by(Sort.Order.desc("createdAt"))
+        );
+        Page<Issue> emptyPage = Page.empty(pageable);
+        IssueFilter filter = new IssueFilter(1L, IssueStatus.OPEN, IssuePriority.LOW);
+
+        when(issueService.findAll(filter, pageable))
+            .thenReturn(emptyPage);
+
+        mockMvc.perform(get("/api/issues?projectId=1&status=OPEN&priority=LOW"))
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -140,12 +157,22 @@ class IssueControllerTest {
             List.of("createdAt", "updatedAt", "title")
         );
 
-        when(issueService.findAll(pageable))
+        when(issueService.findAll(IssueFilter.empty(), pageable))
             .thenThrow(exception);
 
         mockMvc.perform(get("/api/issues?sort=" + invalidSortField + ",asc"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value(exception.getMessage()));
+    }
+
+    @Test
+    void getIssues_returns400_whenStatusIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/issues?status=FINISHED"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                .value("Invalid value 'FINISHED' for argument 'status'."));
+
+        verifyNoInteractions(issueService);
     }
 
     @Test

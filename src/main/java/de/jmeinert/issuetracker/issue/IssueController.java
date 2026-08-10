@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,10 +31,14 @@ public class IssueController {
     @GetMapping("/api/issues")
     public PageResponse<IssueResponse> getIssues(
         @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-        Pageable pageable
+        Pageable pageable,
+        @RequestParam(required = false) Long projectId,
+        @RequestParam(required = false) IssueStatus status,
+        @RequestParam(required = false) IssuePriority priority
     ) {
+        IssueFilter filter = new IssueFilter(projectId, status, priority);
         return PageResponse.from(
-            issueService.findAll(pageable).map(IssueResponse::from)
+            issueService.findAll(filter, pageable).map(IssueResponse::from)
         );
     }
 

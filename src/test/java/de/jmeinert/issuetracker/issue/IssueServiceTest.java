@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Optional;
@@ -64,10 +65,10 @@ class IssueServiceTest {
         );
         Page<Issue> expectedPage = Page.empty(validatedPageable);
 
-        when(issueRepository.findAll(validatedPageable))
+        when(issueRepository.findAll(Specification.unrestricted(), validatedPageable))
             .thenReturn(expectedPage);
 
-        assertEquals(expectedPage, issueService.findAll(requestedPageable));
+        assertEquals(expectedPage, issueService.findAll(IssueFilter.empty(), requestedPageable));
     }
 
     @Test
@@ -81,7 +82,7 @@ class IssueServiceTest {
 
         InvalidSortFieldException exception = assertThrows(
             InvalidSortFieldException.class,
-            () -> issueService.findAll(requestedPageable)
+            () -> issueService.findAll(IssueFilter.empty(), requestedPageable)
         );
         assertEquals(
             "Sort field '" + invalidSortField + "' is invalid. Allowed sort fields: createdAt, updatedAt, title.",
