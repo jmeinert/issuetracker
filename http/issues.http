@@ -1,39 +1,39 @@
-### Issues mit Pagination abrufen
+### Get issues with pagination
 GET http://localhost:8080/api/issues?page=0&size=20
 
-### Issues sortiert abrufen
+### Get issues sorted by title
 GET http://localhost:8080/api/issues?sort=title,asc
 
-### Issues filtern
+### Get issues with combined filters
 GET http://localhost:8080/api/issues?projectId=1&status=IN_PROGRESS&priority=MEDIUM
 
-### Alle Issues eines Projektes abrufen
+### Get issues for a project
 GET http://localhost:8080/api/projects/1/issues
 
-### Issue per ID abrufen
+### Get an issue by ID
 GET http://localhost:8080/api/issues/1
 
-### Issue erstellen
+### Create an issue
 POST http://localhost:8080/api/projects/1/issues
 Content-Type: application/json
 
 {
-  "title": "Demo Issue",
-  "description": "Beschreibung des Demo Issues",
-  "priority": "LOW"
+  "title": "Fix mobile navigation",
+  "description": "The navigation menu does not close after selecting a link on small screens.",
+  "priority": "HIGH"
 }
 
-### Issue aktualisieren
+### Update an issue
 PUT http://localhost:8080/api/issues/1
 Content-Type: application/json
 
 {
-  "title": "Demo Issue aktualisiert",
-  "description": "Beschreibung wurde geändert",
+  "title": "Fix mobile navigation menu",
+  "description": "Ensure the navigation menu closes after selecting a link on small screens.",
   "priority": "MEDIUM"
 }
 
-### Status eines Issues ändern
+### Change an issue status
 PATCH http://localhost:8080/api/issues/1/status
 Content-Type: application/json
 
@@ -41,5 +41,5 @@ Content-Type: application/json
   "status": "IN_PROGRESS"
 }
 
-### Issue löschen
+### Delete an issue
 DELETE http://localhost:8080/api/issues/1
