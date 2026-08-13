@@ -24,33 +24,22 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ProjectNotFoundException.class)
+    @ExceptionHandler({
+        ProjectNotFoundException.class,
+        IssueNotFoundException.class
+    })
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleProjectNotFound(ProjectNotFoundException e) {
+    public ErrorResponse handleNotFound(RuntimeException e) {
         return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(ProjectHasIssuesException.class)
+    @ExceptionHandler({
+        ProjectHasIssuesException.class,
+        ClosedIssueUpdateException.class,
+        InvalidIssueStatusTransitionException.class
+    })
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleProjectHasIssuesException(ProjectHasIssuesException e) {
-        return new ErrorResponse(e.getMessage());
-    }
-
-    @ExceptionHandler(IssueNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleIssueNotFound(IssueNotFoundException e) {
-        return new ErrorResponse(e.getMessage());
-    }
-
-    @ExceptionHandler(ClosedIssueUpdateException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleClosedIssueUpdateException(ClosedIssueUpdateException e) {
-        return new ErrorResponse(e.getMessage());
-    }
-
-    @ExceptionHandler(InvalidIssueStatusTransitionException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleInvalidIssueStatusTransitionException(InvalidIssueStatusTransitionException e) {
+    public ErrorResponse handleConflict(RuntimeException e) {
         return new ErrorResponse(e.getMessage());
     }
 
