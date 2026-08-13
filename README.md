@@ -10,7 +10,7 @@ My goal was to go beyond a minimal CRUD demo by adding realistic domain rules, c
 > [!NOTE]
 > **Work in progress:** The implemented scope covers project and issue management with persistent PostgreSQL storage,
 > Flyway-managed database migrations and integration tests against PostgreSQL using Testcontainers.
-> Filtering, security, continuous integration and deployment infrastructure are planned.
+> Security, continuous integration and deployment infrastructure are planned.
 
 ## Features
 
@@ -24,8 +24,10 @@ My goal was to go beyond a minimal CRUD demo by adding realistic domain rules, c
 ### Issue management
 
 * Create issues within a project
+* Query issues with pagination, sorting and combinable filters for project ID, status and priority
+* Case-insensitive search of issue titles and descriptions
 * Retrieve individual issues
-* Retrieve all issues belonging to a project
+* Retrieve paginated issues belonging to a project
 * Update and delete issues
 * Assign priorities to issues
 * Change issue statuses through a dedicated endpoint
@@ -94,8 +96,9 @@ The service layer is covered by unit tests using JUnit 5 and Mockito.
 Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
 Parameterized service tests cover all allowed and rejected issue status transitions.
 
-Repository integration tests run against PostgreSQL using Testcontainers. Flyway creates the database schema before
-Hibernate validates the JPA mappings. Docker must be available, but no manually running PostgreSQL database is required.
+Persistence and query integration tests run against PostgreSQL using Testcontainers.
+Flyway creates the database schema before Hibernate validates the JPA mappings.
+Docker must be available, but no manually running PostgreSQL database is required.
 
 Run the complete test suite:
 
@@ -165,7 +168,7 @@ docker compose down -v
 ### Projects
 
 | Method   | Endpoint             | Description              |
-| -------- | -------------------- | ------------------------ |
+|----------|----------------------|--------------------------|
 | `GET`    | `/api/projects`      | Retrieve all projects    |
 | `GET`    | `/api/projects/{id}` | Retrieve a project by ID |
 | `POST`   | `/api/projects`      | Create a project         |
@@ -174,14 +177,15 @@ docker compose down -v
 
 ### Issues
 
-| Method   | Endpoint                           | Description                       |
-| -------- | ---------------------------------- | --------------------------------- |
-| `GET`    | `/api/projects/{projectId}/issues` | Retrieve all issues for a project |
-| `POST`   | `/api/projects/{projectId}/issues` | Create an issue within a project  |
-| `GET`    | `/api/issues/{issueId}`            | Retrieve an issue by ID           |
-| `PUT`    | `/api/issues/{issueId}`            | Update an issue                   |
-| `PATCH`  | `/api/issues/{issueId}/status`     | Change the status of an issue     |
-| `DELETE` | `/api/issues/{issueId}`            | Delete an issue                   |
+| Method   | Endpoint                           | Description                                                      |
+|----------|------------------------------------|------------------------------------------------------------------|
+| `GET`    | `/api/issues`                      | Query issues with pagination, sorting, filtering and text search |
+| `GET`    | `/api/projects/{projectId}/issues` | Retrieve paginated issues for a project                          |
+| `POST`   | `/api/projects/{projectId}/issues` | Create an issue within a project                                 |
+| `GET`    | `/api/issues/{issueId}`            | Retrieve an issue by ID                                          |
+| `PUT`    | `/api/issues/{issueId}`            | Update an issue                                                  |
+| `PATCH`  | `/api/issues/{issueId}/status`     | Change the status of an issue                                    |
+| `DELETE` | `/api/issues/{issueId}`            | Delete an issue                                                  |
 
 ## Example requests
 
@@ -238,7 +242,6 @@ curl -X PATCH http://localhost:8080/api/issues/1/status \
 
 Planned improvements include:
 
-* [ ] Filtering, sorting and pagination
 * [ ] Authentication and authorization with Spring Security
 * [ ] Continuous integration with GitHub Actions
 * [ ] OpenAPI documentation
