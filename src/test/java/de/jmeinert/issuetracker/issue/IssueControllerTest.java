@@ -134,12 +134,16 @@ class IssueControllerTest {
             Sort.by(Sort.Order.desc("createdAt"))
         );
         Page<Issue> emptyPage = Page.empty(pageable);
-        IssueFilter filter = new IssueFilter(1L, IssueStatus.OPEN, IssuePriority.LOW);
+        IssueFilter filter = new IssueFilter(1L, IssueStatus.OPEN, IssuePriority.LOW, "test");
 
         when(issueService.findAll(filter, pageable))
             .thenReturn(emptyPage);
 
-        mockMvc.perform(get("/api/issues?projectId=1&status=OPEN&priority=LOW"))
+        mockMvc.perform(get("/api/issues")
+                .param("projectId", "1")
+                .param("status", "OPEN")
+                .param("priority", "LOW")
+                .param("search", "test"))
             .andExpect(status().isOk());
     }
 
@@ -171,6 +175,18 @@ class IssueControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                 .value("Invalid value 'FINISHED' for argument 'status'."));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void getIssues_returns400_whenSearchTextIsTooLong() throws Exception {
+        String tooLongSearchText = "a".repeat(101);
+
+        mockMvc.perform(get("/api/issues?search=" + tooLongSearchText))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.search").value("size must be between 0 and 100"));
 
         verifyNoInteractions(issueService);
     }

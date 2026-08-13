@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
@@ -66,6 +67,28 @@ public class GlobalExceptionHandler {
             .collect(Collectors.toMap(
                 FieldError::getField,
                 fieldError -> Objects.requireNonNullElse(fieldError.getDefaultMessage(), "Invalid value"),
+                (message1, message2) -> message1
+            ));
+
+        return new ErrorResponse("Validation failed", errors);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleHandlerMethodValidation(HandlerMethodValidationException e) {
+        Map<String, String> errors = e.getParameterValidationResults().stream()
+            .collect(Collectors.toMap(
+                result -> Objects.requireNonNullElse(
+                    result.getMethodParameter().getParameterName(),
+                    "Argument"
+                ),
+                result -> result.getResolvableErrors().stream()
+                    .map(error -> Objects.requireNonNullElse(
+                        error.getDefaultMessage(),
+                        "Invalid value"
+                    ))
+                    .findFirst()
+                    .orElse("Invalid value"),
                 (message1, message2) -> message1
             ));
 
