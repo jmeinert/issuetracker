@@ -5,7 +5,7 @@ GET http://localhost:8080/api/issues?page=0&size=20
 GET http://localhost:8080/api/issues?sort=title,asc
 
 ### Get issues with combined filters
-GET http://localhost:8080/api/issues?projectId=1&status=IN_PROGRESS&priority=MEDIUM
+GET http://localhost:8080/api/issues?projectId=1&status=IN_PROGRESS&priority=MEDIUM&search=navigation
 
 ### Get issues for a project
 GET http://localhost:8080/api/projects/1/issues

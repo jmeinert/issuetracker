@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -41,6 +42,7 @@ public class IssueService {
 
     public Page<Issue> findAll(IssueFilter filter, Pageable pageable) {
         Specification<Issue> specification = Specification.unrestricted();
+        String searchText = filter.search();
 
         if (filter.projectId() != null) {
             specification = specification.and(IssueSpecifications.hasProjectId(filter.projectId()));
@@ -50,6 +52,10 @@ public class IssueService {
         }
         if (filter.priority() != null) {
             specification = specification.and(IssueSpecifications.hasPriority(filter.priority()));
+        }
+        if (searchText != null && !searchText.isBlank()) {
+            String normalizedSearchText = searchText.toLowerCase(Locale.ROOT).trim();
+            specification = specification.and(IssueSpecifications.hasSearchText(normalizedSearchText));
         }
 
         return issueRepository.findAll(specification, getValidatedPageable(pageable));

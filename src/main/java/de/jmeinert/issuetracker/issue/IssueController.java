@@ -3,6 +3,7 @@ package de.jmeinert.issuetracker.issue;
 import de.jmeinert.issuetracker.pagination.PageResponse;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -34,9 +35,10 @@ public class IssueController {
         Pageable pageable,
         @RequestParam(required = false) Long projectId,
         @RequestParam(required = false) IssueStatus status,
-        @RequestParam(required = false) IssuePriority priority
+        @RequestParam(required = false) IssuePriority priority,
+        @RequestParam(required = false) @Size(max = 100) String search
     ) {
-        IssueFilter filter = new IssueFilter(projectId, status, priority);
+        IssueFilter filter = new IssueFilter(projectId, status, priority, search);
         return PageResponse.from(
             issueService.findAll(filter, pageable).map(IssueResponse::from)
         );

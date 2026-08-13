@@ -3,10 +3,11 @@ package de.jmeinert.issuetracker.issue;
 public record IssueFilter(
     Long projectId,
     IssueStatus status,
-    IssuePriority priority
+    IssuePriority priority,
+    String search
 ) {
 
     public static IssueFilter empty() {
-        return new IssueFilter(null, null, null);
+        return new IssueFilter(null, null, null, null);
     }
 }
