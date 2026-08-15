@@ -10,7 +10,7 @@ My goal was to go beyond a minimal CRUD demo by adding realistic domain rules, c
 > [!NOTE]
 > **Work in progress:** The implemented scope covers project and issue management with persistent PostgreSQL storage,
 > Flyway-managed database migrations and integration tests against PostgreSQL using Testcontainers.
-> Security, continuous integration and deployment infrastructure are planned.
+> Security and deployment infrastructure are planned.
 
 ## Features
 
@@ -80,6 +80,7 @@ CRITICAL
 * Maven
 * JUnit 5, Mockito and MockMvc
 * Testcontainers
+* GitHub Actions
 
 ## Architecture
 
@@ -99,6 +100,8 @@ Parameterized service tests cover all allowed and rejected issue status transiti
 Persistence and query integration tests run against PostgreSQL using Testcontainers.
 Flyway creates the database schema before Hibernate validates the JPA mappings.
 Docker must be available, but no manually running PostgreSQL database is required.
+
+GitHub Actions runs the complete build verification on pushes to `main` and pull requests targeting `main`.
 
 Run the complete test suite:
 
@@ -243,6 +246,5 @@ curl -X PATCH http://localhost:8080/api/issues/1/status \
 Planned improvements include:
 
 * [ ] Authentication and authorization with Spring Security
-* [ ] Continuous integration with GitHub Actions
 * [ ] OpenAPI documentation
 * [ ] Containerized application deployment
