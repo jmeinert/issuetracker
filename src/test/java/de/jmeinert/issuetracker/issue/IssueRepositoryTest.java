@@ -150,7 +150,7 @@ class IssueRepositoryTest {
     }
 
     @Test
-    void save_persistsProjectRelationship() {
+    void save_persistsIssue() {
         Project project = new Project("TestName", "TestDescription");
         projectRepository.saveAndFlush(project);
 
@@ -171,8 +171,14 @@ class IssueRepositoryTest {
         Issue persistedIssue = issueRepository.findById(issueId)
             .orElseThrow();
 
-        assertThat(persistedIssue.getProject().getId())
-            .isEqualTo(projectId);
+        assertThat(persistedIssue.getId()).isEqualTo(issueId);
+        assertThat(persistedIssue.getTitle()).isEqualTo("TestTitle");
+        assertThat(persistedIssue.getDescription()).isEqualTo("TestDescription");
+        assertThat(persistedIssue.getStatus()).isEqualTo(IssueStatus.OPEN);
+        assertThat(persistedIssue.getPriority()).isEqualTo(IssuePriority.LOW);
+        assertThat(persistedIssue.getProject().getId()).isEqualTo(projectId);
+        assertThat(persistedIssue.getCreatedAt()).isNotNull();
+        assertThat(persistedIssue.getUpdatedAt()).isNotNull();
     }
 
     @ParameterizedTest
