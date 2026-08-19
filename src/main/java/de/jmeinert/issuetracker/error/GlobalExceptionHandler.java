@@ -1,5 +1,6 @@
 package de.jmeinert.issuetracker.error;
 
+import de.jmeinert.issuetracker.auth.UserAlreadyExistsException;
 import de.jmeinert.issuetracker.issue.ClosedIssueUpdateException;
 import de.jmeinert.issuetracker.issue.InvalidIssueStatusTransitionException;
 import de.jmeinert.issuetracker.issue.InvalidSortFieldException;
@@ -36,7 +37,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
         ProjectHasIssuesException.class,
         ClosedIssueUpdateException.class,
-        InvalidIssueStatusTransitionException.class
+        InvalidIssueStatusTransitionException.class,
+        UserAlreadyExistsException.class
     })
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(RuntimeException e) {

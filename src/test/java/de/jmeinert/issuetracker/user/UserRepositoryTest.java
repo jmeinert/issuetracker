@@ -30,6 +30,57 @@ class UserRepositoryTest {
     private EntityManager entityManager;
 
     @Test
+    void existsByUsernameOrEmail_returnsTrue_whenUserHasUsername() {
+        User user = new User(
+            "TestUser",
+            "test@test.com",
+            "TestPasswordHash",
+            UserRole.USER,
+            true
+        );
+
+        userRepository.saveAndFlush(user);
+        entityManager.clear();
+
+        assertThat(userRepository.existsByUsernameOrEmail("TestUser", "test2@test.com"))
+            .isTrue();
+    }
+
+    @Test
+    void existsByUsernameOrEmail_returnsTrue_whenUserHasEmail() {
+        User user = new User(
+            "TestUser",
+            "test@test.com",
+            "TestPasswordHash",
+            UserRole.USER,
+            true
+        );
+
+        userRepository.saveAndFlush(user);
+        entityManager.clear();
+
+        assertThat(userRepository.existsByUsernameOrEmail("TestUser2", "test@test.com"))
+            .isTrue();
+    }
+
+    @Test
+    void existsByUsernameOrEmail_returnsFalse_whenNoUserHasUsernameOrEmail() {
+        User user = new User(
+            "TestUser",
+            "test@test.com",
+            "TestPasswordHash",
+            UserRole.USER,
+            true
+        );
+
+        userRepository.saveAndFlush(user);
+        entityManager.clear();
+
+        assertThat(userRepository.existsByUsernameOrEmail("TestUser2", "test2@test.com"))
+            .isFalse();
+    }
+
+    @Test
     void save_persistsUser() {
         User user = new User(
             "TestUser",
