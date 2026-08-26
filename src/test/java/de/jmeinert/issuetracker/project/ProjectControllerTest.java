@@ -1,11 +1,14 @@
 package de.jmeinert.issuetracker.project;
 
+import de.jmeinert.issuetracker.BaseSecurityWebMvcTest;
+
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
@@ -17,14 +20,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ProjectController.class)
-class ProjectControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+@WithMockUser(roles = "ADMIN")
+class ProjectControllerTest extends BaseSecurityWebMvcTest {
 
     @MockitoBean
     private ProjectService projectService;
@@ -42,6 +44,17 @@ class ProjectControllerTest {
             .andExpect(jsonPath("$[0]['name']").value("TestName"))
             .andExpect(jsonPath("$[0]['description']").value("TestDescription"))
             .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    @WithAnonymousUser
+    void getAll_returns401_whenTokenIsMissing() throws Exception {
+        mockMvc.perform(get("/api/projects"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.message").value("Authentication required"))
+            .andExpect(header().exists(HttpHeaders.WWW_AUTHENTICATE));
+
+        verifyNoInteractions(projectService);
     }
 
     @Test

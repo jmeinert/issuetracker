@@ -8,6 +8,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,6 +30,15 @@ class AuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private TokenService tokenService;
+
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
     private AuthService authService;
@@ -122,5 +134,33 @@ class AuthServiceTest {
         );
 
         assertSame(expectedException, actualException);
+    }
+
+    @Test
+    void login_normalizesUsernameAuthenticatesAndGeneratesToken() {
+        String username = "   TestUser   ";
+        String password = "TestPassword1234";
+        String normalizedUsername = "testuser";
+        String expectedToken = "token";
+
+        LoginRequest request = new LoginRequest(username, password);
+
+        var authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
+            normalizedUsername,
+            password
+        );
+
+        when(authenticationManager.authenticate(authenticationRequest))
+            .thenReturn(authentication);
+
+        when(tokenService.generateToken(authentication))
+            .thenReturn(expectedToken);
+
+        String token = authService.login(request);
+
+        assertEquals(expectedToken, token);
+
+        verify(authenticationManager).authenticate(authenticationRequest);
+        verify(tokenService).generateToken(authentication);
     }
 }
