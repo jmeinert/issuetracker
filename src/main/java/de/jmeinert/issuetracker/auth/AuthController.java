@@ -21,4 +21,10 @@ public class AuthController {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @PostMapping("/api/auth/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        String token = authService.login(request);
+        return new LoginResponse(token);
+    }
 }

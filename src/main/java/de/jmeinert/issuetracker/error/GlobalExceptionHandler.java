@@ -10,6 +10,8 @@ import de.jmeinert.issuetracker.project.ProjectHasIssuesException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.AccountStatusException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -53,7 +55,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+    public ErrorResponse handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         Map<String, String> errors = e.getFieldErrors().stream()
             .collect(Collectors.toMap(
                 FieldError::getField,
@@ -66,7 +68,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HandlerMethodValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHandlerMethodValidation(HandlerMethodValidationException e) {
+    public ErrorResponse handleHandlerMethodValidationException(HandlerMethodValidationException e) {
         Map<String, String> errors = e.getParameterValidationResults().stream()
             .collect(Collectors.toMap(
                 result -> Objects.requireNonNullElse(
@@ -88,13 +90,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException e) {
+    public ErrorResponse handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         return new ErrorResponse("Invalid value '" + e.getValue() + "' for argument '" + e.getName() + "'.");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+    public ErrorResponse handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         return new ErrorResponse("Invalid request body");
+    }
+
+    @ExceptionHandler({
+        BadCredentialsException.class,
+        AccountStatusException.class
+    })
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleLoginExceptions(RuntimeException e) {
+        return new ErrorResponse("Invalid username or password");
     }
 }

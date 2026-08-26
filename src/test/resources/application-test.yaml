@@ -2,3 +2,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+
+jwt:
+  # Fixed value for testing purposes
+  secret: UGATDaz5hUK1BhoeFx249rmMEvAjTGXvG6Izoa7jOb8=

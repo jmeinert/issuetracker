@@ -1,20 +1,22 @@
 package de.jmeinert.issuetracker.issue;
 
+import de.jmeinert.issuetracker.BaseSecurityWebMvcTest;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
@@ -29,14 +31,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(IssueController.class)
-class IssueControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+@WithMockUser(roles = "ADMIN")
+class IssueControllerTest extends BaseSecurityWebMvcTest {
 
     @MockitoBean
     private IssueService issueService;
@@ -187,6 +188,18 @@ class IssueControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.search").value("size must be between 0 and 100"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    @WithAnonymousUser
+    void getIssues_returns401_whenTokenIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/issues")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.message").value("Authentication required"))
+            .andExpect(header().exists(HttpHeaders.WWW_AUTHENTICATE));
 
         verifyNoInteractions(issueService);
     }

@@ -1,13 +1,16 @@
 package de.jmeinert.issuetracker.auth;
 
+import de.jmeinert.issuetracker.user.UserNormalizer;
 import de.jmeinert.issuetracker.user.UserService;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -19,17 +22,25 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final AuthenticationManager authenticationManager;
+
+    private final TokenService tokenService;
+
     public AuthService(
         UserService userService,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        AuthenticationManager authenticationManager,
+        TokenService tokenService
     ) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.tokenService = tokenService;
     }
 
     public void register(RegisterRequest request) {
-        String normalizedUsername = request.username().strip().toLowerCase(Locale.ROOT);
-        String normalizedEmail = request.email().strip().toLowerCase(Locale.ROOT);
+        String normalizedUsername = UserNormalizer.normalizeUsername(request.username());
+        String normalizedEmail = UserNormalizer.normalizeEmail(request.email());
 
         if (userService.existsByUsernameOrEmail(normalizedUsername, normalizedEmail)) {
             throw new UserAlreadyExistsException();
@@ -47,6 +58,17 @@ public class AuthService {
 
             throw exception;
         }
+    }
+
+    public String login(LoginRequest request) {
+        var authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
+            UserNormalizer.normalizeUsername(request.username()),
+            request.password()
+        );
+
+        Authentication authentication = authenticationManager.authenticate(authenticationRequest);
+
+        return tokenService.generateToken(authentication);
     }
 
     private boolean isDuplicateUserConstraint(DataIntegrityViolationException exception) {
