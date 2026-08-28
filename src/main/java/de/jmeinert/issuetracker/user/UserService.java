@@ -1,5 +1,7 @@
 package de.jmeinert.issuetracker.user;
 
+import de.jmeinert.issuetracker.security.IsAdmin;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,5 +36,15 @@ public class UserService {
         );
 
         return userRepository.save(user);
+    }
+
+    @Transactional
+    @IsAdmin
+    public User changeEnabled(Long userId, boolean enabled) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+
+        user.changeEnabledTo(enabled);
+        return user;
     }
 }

@@ -93,4 +93,8 @@ public class User {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    void changeEnabledTo(boolean enabled) {
+        this.enabled = enabled;
+    }
 }

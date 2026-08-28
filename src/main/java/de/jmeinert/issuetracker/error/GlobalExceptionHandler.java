@@ -7,6 +7,7 @@ import de.jmeinert.issuetracker.issue.InvalidSortFieldException;
 import de.jmeinert.issuetracker.issue.IssueNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectHasIssuesException;
+import de.jmeinert.issuetracker.user.UserNotFoundException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -29,7 +30,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
         ProjectNotFoundException.class,
-        IssueNotFoundException.class
+        IssueNotFoundException.class,
+        UserNotFoundException.class
     })
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFound(RuntimeException e) {

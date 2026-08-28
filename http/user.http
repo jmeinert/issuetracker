@@ -1,0 +1,7 @@
+### Change enabled status of user
+PATCH http://localhost:8080/api/users/1/enabled
+Content-Type: application/json
+
+{
+  "enabled": false
+}

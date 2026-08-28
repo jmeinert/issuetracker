@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,7 +79,7 @@ class AuthIntegrationTest {
     }
 
     @Test
-    void login_authenticatesUserAndReturnsUsableJWT() throws Exception {
+    void registerAndLogin_authenticatesUserAndReturnsUsableJWT() throws Exception {
         String username = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
@@ -94,27 +95,30 @@ class AuthIntegrationTest {
                 """.formatted(username, email, password)))
             .andExpect(status().isCreated());
 
-        String response = mockMvc.perform(post("/api/auth/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "username": "%s",
-                    "password": "%s"
-                }
-                """.formatted(username, password)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.token").isNotEmpty())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-        LoginResponse loginResponse = jsonMapper.readValue(response, LoginResponse.class);
-        String token = loginResponse.token();
+        String token = login(username, password);
 
         // Access protected endpoint with given JWT token
         mockMvc.perform(get("/api/projects")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andExpect(authenticated().withRoles("USER"));
+    }
+
+    @Test
+    void login_adminRoleClaimIsMappedToValidRole() throws Exception {
+        String username = "testuser";
+        String email = "test@example.com";
+        String password = "TestPassword1234";
+
+        saveUser(username, email, password, UserRole.ADMIN, true);
+
+        String token = login(username, password);
+
+        // Access protected endpoint with given JWT token
+        mockMvc.perform(get("/api/projects")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(authenticated().withRoles("ADMIN"));
     }
 
     @Test
@@ -124,7 +128,7 @@ class AuthIntegrationTest {
         String password = "TestPassword1234";
         String wrongUsername = "testuser2";
 
-        saveUser(username, email, password, true);
+        saveUser(username, email, password, UserRole.USER, true);
 
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
@@ -145,7 +149,7 @@ class AuthIntegrationTest {
         String password = "TestPassword1234";
         String wrongPassword = "TestPassword12345";
 
-        saveUser(username, email, password, true);
+        saveUser(username, email, password, UserRole.USER, true);
 
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
@@ -165,7 +169,7 @@ class AuthIntegrationTest {
         String email = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser(username, email, password, false);
+        saveUser(username, email, password, UserRole.USER, false);
 
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
@@ -179,13 +183,32 @@ class AuthIntegrationTest {
             .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
 
-    private void saveUser(String username, String email, String password, boolean enabled) {
+    private void saveUser(String username, String email, String password, UserRole role, boolean enabled) {
         userRepository.saveAndFlush(new User(
             username,
             email,
             passwordEncoder.encode(password),
-            UserRole.USER,
+            role,
             enabled
         ));
+    }
+
+    private String login(String username, String password) throws Exception {
+        String response = mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "username": "%s",
+                    "password": "%s"
+                }
+                """.formatted(username, password)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.token").isNotEmpty())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        LoginResponse loginResponse = jsonMapper.readValue(response, LoginResponse.class);
+        return loginResponse.token();
     }
 }
