@@ -1,6 +1,7 @@
 package de.jmeinert.issuetracker.project;
 
 import de.jmeinert.issuetracker.issue.IssueRepository;
+import de.jmeinert.issuetracker.security.IsAdmin;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ public class ProjectService {
     }
 
     @Transactional
+    @IsAdmin
     public Project create(String name, String description) {
         Project project = new Project(name, description);
 
@@ -40,6 +42,7 @@ public class ProjectService {
     }
 
     @Transactional
+    @IsAdmin
     public Project update(Long id, String name, String description) {
         Project project = findById(id);
         project.updateDetails(name, description);
@@ -47,6 +50,7 @@ public class ProjectService {
     }
 
     @Transactional
+    @IsAdmin
     public void delete(Long id) {
         Project project = findById(id);
 

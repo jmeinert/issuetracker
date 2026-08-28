@@ -2,6 +2,7 @@ package de.jmeinert.issuetracker.issue;
 
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectService;
+import de.jmeinert.issuetracker.security.IsAdmin;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -117,6 +118,7 @@ public class IssueService {
     }
 
     @Transactional
+    @IsAdmin
     public void delete(Long issueId) {
         Issue issue = findById(issueId);
         issueRepository.delete(issue);
