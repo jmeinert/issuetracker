@@ -34,13 +34,9 @@ class UserServiceTest {
     ) {
         Long userId = 1L;
 
-        User user = new User(
-            "testuser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            initialEnabled
-        );
+        User user = new UserTestBuilder()
+            .enabled(initialEnabled)
+            .build();
 
         when(userRepository.findById(userId))
             .thenReturn(Optional.of(user));

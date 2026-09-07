@@ -41,5 +41,16 @@ Content-Type: application/json
   "status": "IN_PROGRESS"
 }
 
+### Assign issue
+PATCH http://localhost:8080/api/issues/1/assignee
+Content-Type: application/json
+
+{
+  "assigneeId": 1
+}
+
+### Unassign issue
+DELETE http://localhost:8080/api/issues/1/assignee
+
 ### Delete an issue
 DELETE http://localhost:8080/api/issues/1

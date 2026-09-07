@@ -5,8 +5,14 @@ import de.jmeinert.issuetracker.config.TestcontainersConfiguration;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectRepository;
 import de.jmeinert.issuetracker.project.ProjectService;
+import de.jmeinert.issuetracker.security.AuthenticatedUserProvider;
+import de.jmeinert.issuetracker.user.User;
+import de.jmeinert.issuetracker.user.UserRepository;
+import de.jmeinert.issuetracker.user.UserService;
+import de.jmeinert.issuetracker.user.UserTestBuilder;
 
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -27,12 +33,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({
     TestcontainersConfiguration.class,
     PersistenceConfig.class,
-    IssueService.class
+    IssueService.class,
+    AuthenticatedUserProvider.class
 })
 class IssueQueryIntegrationTest {
 
     @MockitoBean
     private ProjectService projectService;
+
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    private AuthenticatedUserProvider authenticatedUserProvider;
 
     @Autowired
     private IssueService issueService;
@@ -44,27 +57,39 @@ class IssueQueryIntegrationTest {
     private IssueRepository issueRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private EntityManager entityManager;
+
+    private Project project;
+
+    private User reporter;
+
+    @BeforeEach
+    void setUp() {
+        project = new Project("TestName", "TestDescription");
+        projectRepository.saveAndFlush(project);
+
+        reporter = new UserTestBuilder()
+            .username("reporter")
+            .email("reporter@example.com")
+            .build();
+        userRepository.saveAndFlush(reporter);
+
+        entityManager.clear();
+    }
 
     @Test
     void findAll_filtersIssuesByProjectId() {
         Project project1 = new Project("TestName", "TestDescription");
         Project project2 = new Project("TestName2", "TestDescription2");
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project1
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project2
-        );
+        Issue issue1 = new IssueTestBuilder(project1, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project2, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .build();
 
         projectRepository.saveAllAndFlush(List.of(project1, project2));
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
@@ -86,24 +111,13 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_filtersIssuesByStatus() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .status(IssueStatus.IN_PROGRESS)
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.IN_PROGRESS,
-            IssuePriority.LOW,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -123,24 +137,13 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_filtersIssuesByPriority() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .priority(IssuePriority.MEDIUM)
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -160,24 +163,12 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_normalizesSearchText() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -197,24 +188,12 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_ignoresBlankSearchText() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -234,24 +213,14 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_escapesSearchText() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter)
+            .title("100%")
+            .build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("100")
+            .description("TestDescription2")
+            .build();
 
-        Issue issue1 = new Issue(
-            "100%",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "100",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -271,24 +240,12 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_searchesIssueTitle() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -308,24 +265,12 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_searchesIssueDescription() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -345,24 +290,15 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_searchesIssueTitleOrDescription() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue1 = new IssueTestBuilder(project, reporter)
+            .title("TestTitle")
+            .description("Description")
+            .build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .title("Title2")
+            .description("TestDescription2")
+            .build();
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "Description",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-        Issue issue2 = new Issue(
-            "Title2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAllAndFlush(List.of(issue1, issue2));
         entityManager.clear();
 
@@ -385,41 +321,29 @@ class IssueQueryIntegrationTest {
         Project project1 = new Project("TestName", "TestDescription");
         Project project2 = new Project("TestName2", "TestDescription2");
 
-        Issue issue1 = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project1
-        );
-        Issue issue2 = new Issue(
-            "TestTitle2",
-            "TestDescription2",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project1
-        );
-        Issue issue3 = new Issue(
-            "TestTitle3",
-            "TestDescription3",
-            IssueStatus.IN_PROGRESS,
-            IssuePriority.MEDIUM,
-            project1
-        );
-        Issue issue4 = new Issue(
-            "TestTitle4",
-            "TestDescription4",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project2
-        );
-        Issue issue5 = new Issue(
-            "Title5",
-            "Description5",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project1
-        );
+        Issue issue1 = new IssueTestBuilder(project1, reporter)
+            .priority(IssuePriority.MEDIUM)
+            .build();
+        Issue issue2 = new IssueTestBuilder(project1, reporter)
+            .title("TestTitle2")
+            .description("TestDescription2")
+            .build();
+        Issue issue3 = new IssueTestBuilder(project1, reporter)
+            .title("TestTitle3")
+            .description("TestDescription3")
+            .status(IssueStatus.IN_PROGRESS)
+            .priority(IssuePriority.MEDIUM)
+            .build();
+        Issue issue4 = new IssueTestBuilder(project2, reporter)
+            .title("TestTitle4")
+            .description("TestDescription4")
+            .priority(IssuePriority.MEDIUM)
+            .build();
+        Issue issue5 = new IssueTestBuilder(project1, reporter)
+            .title("Title5")
+            .description("Description5")
+            .priority(IssuePriority.MEDIUM)
+            .build();
 
         projectRepository.saveAllAndFlush(List.of(project1, project2));
         issueRepository.saveAllAndFlush(List.of(issue1, issue2, issue3, issue4, issue5));
@@ -441,17 +365,8 @@ class IssueQueryIntegrationTest {
 
     @Test
     void findAll_returnsEmptyPage_whenFilterYieldsNoResults() {
-        Project project = new Project("TestName", "TestDescription");
+        Issue issue = new IssueTestBuilder(project, reporter).build();
 
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
-
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAndFlush(issue);
         entityManager.clear();
 

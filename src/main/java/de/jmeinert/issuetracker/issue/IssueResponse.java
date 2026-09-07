@@ -9,6 +9,8 @@ public record IssueResponse(
     IssueStatus status,
     IssuePriority priority,
     Long projectId,
+    Long reporterId,
+    Long assigneeId,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -21,6 +23,8 @@ public record IssueResponse(
             issue.getStatus(),
             issue.getPriority(),
             issue.getProject().getId(),
+            issue.getReporter().getId(),
+            issue.getAssignee() != null ? issue.getAssignee().getId() : null,
             issue.getCreatedAt(),
             issue.getUpdatedAt()
         );

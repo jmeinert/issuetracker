@@ -102,6 +102,46 @@ class AdminAuthorizationIntegrationTest {
     }
 
     @Test
+    void assignIssue_grantsAccess_whenPrincipalIsAnAdmin() throws Exception {
+        mockMvc.perform(patch("/api/issues/1/assignee")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": 2
+                }
+                """))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void assignIssue_returns403_whenPrincipalIsNotAnAdmin() throws Exception {
+        mockMvc.perform(patch("/api/issues/1/assignee")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": 2
+                }
+                """))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message").value("Access denied"));
+    }
+
+    @Test
+    void unassignIssue_grantsAccess_whenPrincipalIsAnAdmin() throws Exception {
+        mockMvc.perform(delete("/api/issues/1/assignee"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void unassignIssue_returns403_whenPrincipalIsNotAnAdmin() throws Exception {
+        mockMvc.perform(delete("/api/issues/1/assignee"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message").value("Access denied"));
+    }
+
+    @Test
     void deleteIssue_grantsAccess_whenPrincipalIsAnAdmin() throws Exception {
         mockMvc.perform(delete("/api/issues/1"))
             .andExpect(status().isNotFound());

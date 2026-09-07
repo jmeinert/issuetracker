@@ -2,7 +2,11 @@ package de.jmeinert.issuetracker.issue;
 
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectService;
+import de.jmeinert.issuetracker.security.AuthenticatedUserProvider;
 import de.jmeinert.issuetracker.security.IsAdmin;
+import de.jmeinert.issuetracker.user.User;
+import de.jmeinert.issuetracker.user.UserDisabledException;
+import de.jmeinert.issuetracker.user.UserService;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,12 +37,20 @@ public class IssueService {
 
     private final ProjectService projectService;
 
+    private final UserService userService;
+
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+
     public IssueService(
         IssueRepository issueRepository,
-        ProjectService projectService
+        ProjectService projectService,
+        UserService userService,
+        AuthenticatedUserProvider authenticatedUserProvider
     ) {
         this.issueRepository = issueRepository;
         this.projectService = projectService;
+        this.userService = userService;
+        this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
     public Page<Issue> findAll(IssueFilter filter, Pageable pageable) {
@@ -75,12 +87,16 @@ public class IssueService {
     @Transactional
     public Issue create(Long projectId, CreateIssueRequest request) {
         Project project = projectService.findById(projectId);
+        User reporter = userService.findById(authenticatedUserProvider.getUserId());
+
         Issue issue = new Issue(
             request.title(),
             request.description(),
             IssueStatus.OPEN,
             request.priority(),
-            project
+            project,
+            reporter,
+            null
         );
 
         return issueRepository.save(issue);
@@ -114,6 +130,29 @@ public class IssueService {
         }
 
         issue.changeStatusTo(targetStatus);
+        return issue;
+    }
+
+    @Transactional
+    @IsAdmin
+    public Issue assign(Long issueId, AssignIssueRequest request) {
+        Issue issue = findById(issueId);
+        User assignee = userService.findById(request.assigneeId());
+
+        if (!assignee.getEnabled()) {
+            throw new UserDisabledException();
+        }
+
+        issue.changeAssigneeTo(assignee);
+        return issue;
+    }
+
+    @Transactional
+    @IsAdmin
+    public Issue unassign(Long issueId) {
+        Issue issue = findById(issueId);
+
+        issue.changeAssigneeTo(null);
         return issue;
     }
 

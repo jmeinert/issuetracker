@@ -25,13 +25,12 @@ class UserControllerTest extends BaseSecurityWebMvcTest {
     void changeUserEnabled_returns200_whenUserExists() throws Exception {
         Long userId = 1L;
 
-        User user = new User(
-            "testuser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            false
-        );
+        User user = new UserTestBuilder()
+            .username("testuser")
+            .email("testuser@example.com")
+            .role(UserRole.USER)
+            .enabled(false)
+            .build();
 
         when(userService.changeEnabled(userId, false))
             .thenReturn(user);
@@ -45,7 +44,7 @@ class UserControllerTest extends BaseSecurityWebMvcTest {
                 """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.username").value("testuser"))
-            .andExpect(jsonPath("$.email").value("test@test.com"))
+            .andExpect(jsonPath("$.email").value("testuser@example.com"))
             .andExpect(jsonPath("$.role").value("USER"))
             .andExpect(jsonPath("$.enabled").value(false));
     }

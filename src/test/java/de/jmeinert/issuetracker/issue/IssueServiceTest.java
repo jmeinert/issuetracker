@@ -3,6 +3,12 @@ package de.jmeinert.issuetracker.issue;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectService;
+import de.jmeinert.issuetracker.security.AuthenticatedUserProvider;
+import de.jmeinert.issuetracker.user.User;
+import de.jmeinert.issuetracker.user.UserDisabledException;
+import de.jmeinert.issuetracker.user.UserNotFoundException;
+import de.jmeinert.issuetracker.user.UserService;
+import de.jmeinert.issuetracker.user.UserTestBuilder;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -41,11 +48,24 @@ class IssueServiceTest {
     @Mock
     private ProjectService projectService;
 
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private AuthenticatedUserProvider authenticatedUserProvider;
+
     @InjectMocks
     private IssueService issueService;
 
     @Captor
     private ArgumentCaptor<Issue> issueArgumentCaptor;
+
+    private final Project project = new Project("TestName", "TestDescription");
+
+    private final User reporter = new UserTestBuilder()
+        .username("reporter")
+        .email("reporter@example.com")
+        .build();
 
     @ParameterizedTest
     @ValueSource(strings = {"createdAt", "updatedAt", "title"})
@@ -95,22 +115,12 @@ class IssueServiceTest {
     @Test
     void findAllByProjectId_returnsPageOfIssuesOfProject_whenProjectExists() {
         Long projectId = 1L;
-        Project project = new Project("TestName", "TestDescription");
         List<Issue> issues = List.of(
-            new Issue(
-                "TestTitle",
-                "TestDescription",
-                IssueStatus.OPEN,
-                IssuePriority.LOW,
-                project
-            ),
-            new Issue(
-                "TestTitle2",
-                "TestDescription2",
-                IssueStatus.OPEN,
-                IssuePriority.HIGH,
-                project
-            )
+            new IssueTestBuilder(project, reporter).build(),
+            new IssueTestBuilder(project, reporter)
+                .title("TestTitle2")
+                .description("TestDescription2")
+                .build()
         );
         Pageable requestedPageable = PageRequest.of(
             0,
@@ -160,14 +170,7 @@ class IssueServiceTest {
     @Test
     void findById_returnsIssue_whenIssueExists() {
         Long issueId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter).build();
 
         when(issueRepository.findById(issueId))
             .thenReturn(Optional.of(issue));
@@ -188,15 +191,21 @@ class IssueServiceTest {
     @Test
     void create_savesIssue() {
         Long projectId = 1L;
+        Long reporterId = 2L;
         CreateIssueRequest request = new CreateIssueRequest(
             "TestTitle",
             "TestDescription",
             IssuePriority.LOW
         );
-        Project project = new Project("TestName", "TestDescription");
 
         when(projectService.findById(projectId))
             .thenReturn(project);
+
+        when(authenticatedUserProvider.getUserId())
+            .thenReturn(reporterId);
+
+        when(userService.findById(reporterId))
+            .thenReturn(reporter);
 
         issueService.create(projectId, request);
         verify(issueRepository).save(issueArgumentCaptor.capture());
@@ -208,6 +217,7 @@ class IssueServiceTest {
         assertEquals(IssueStatus.OPEN, savedIssue.getStatus());
         assertEquals(IssuePriority.LOW, savedIssue.getPriority());
         assertEquals(project, savedIssue.getProject());
+        assertEquals(reporter, savedIssue.getReporter());
     }
 
     @Test
@@ -230,14 +240,7 @@ class IssueServiceTest {
     @Test
     void update_updatesIssue_whenIssueExists() {
         Long issueId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter).build();
         UpdateIssueRequest request = new UpdateIssueRequest(
             "UpdatedTestTitle",
             "UpdatedTestDescription",
@@ -274,14 +277,9 @@ class IssueServiceTest {
     @Test
     void update_throwsClosedIssueUpdateException_whenIssueIsClosed() {
         Long issueId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.CLOSED,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(IssueStatus.CLOSED)
+            .build();
         UpdateIssueRequest request = new UpdateIssueRequest(
             "UpdatedTestTitle",
             "UpdatedTestDescription",
@@ -319,14 +317,9 @@ class IssueServiceTest {
         IssueStatus targetStatus
     ) {
         Long issueId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            currentStatus,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(currentStatus)
+            .build();
         ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
 
         when(issueRepository.findById(issueId))
@@ -355,14 +348,9 @@ class IssueServiceTest {
         IssueStatus targetStatus
     ) {
         Long issueId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            currentStatus,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(currentStatus)
+            .build();
         ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
 
         when(issueRepository.findById(issueId))
@@ -388,16 +376,126 @@ class IssueServiceTest {
     }
 
     @Test
+    void assign_assignsUserToIssue_whenAssigneeExists() {
+        Long issueId = 1L;
+        Long assigneeId = 2L;
+        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
+
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+
+        User assignee = new UserTestBuilder()
+            .id(assigneeId)
+            .username("assignee")
+            .email("assignee@example.com")
+            .enabled(true)
+            .build();
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        when(userService.findById(assigneeId))
+            .thenReturn(assignee);
+
+        Issue changedIssue = issueService.assign(issueId, request);
+
+        assertEquals(assigneeId, changedIssue.getAssignee().getId());
+    }
+
+    @Test
+    void assign_throwsIssueNotFoundException_whenIssueDoesNotExist() {
+        Long issueId = 5L;
+        Long assigneeId = 2L;
+        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.empty());
+
+        assertIssueNotFound(issueId, () -> issueService.assign(issueId, request));
+    }
+
+    @Test
+    void assign_throwsUserNotFoundException_whenAssigneeDoesNotExist() {
+        Long issueId = 1L;
+        Long assigneeId = 5L;
+        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
+
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        when(userService.findById(assigneeId))
+            .thenThrow(new UserNotFoundException(assigneeId));
+
+        UserNotFoundException exception = assertThrows(
+            UserNotFoundException.class,
+            () -> issueService.assign(issueId, request)
+        );
+        assertEquals("User not found with id: " + assigneeId, exception.getMessage());
+    }
+
+    @Test
+    void assign_throwsUserDisabledException_whenAssigneeIsDisabled() {
+        Long issueId = 1L;
+        Long assigneeId = 2L;
+        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
+
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+
+        User assignee = new UserTestBuilder()
+            .username("assignee")
+            .email("assignee@example.com")
+            .enabled(false)
+            .build();
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        when(userService.findById(assigneeId))
+            .thenReturn(assignee);
+
+        UserDisabledException exception = assertThrows(
+            UserDisabledException.class,
+            () -> issueService.assign(issueId, request)
+        );
+        assertEquals("User is disabled", exception.getMessage());
+    }
+
+    @Test
+    void unassign_clearsAssignee_whenIssueExists() {
+        Long issueId = 1L;
+
+        User assignee = new UserTestBuilder()
+            .username("assignee")
+            .email("assignee@example.com")
+            .build();
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .assignee(assignee)
+            .build();
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.of(issue));
+
+        Issue changedIssue = issueService.unassign(issueId);
+
+        assertNull(changedIssue.getAssignee());
+    }
+
+    @Test
+    void unassign_throwsIssueNotFoundException_whenIssueDoesNotExist() {
+        Long issueId = 5L;
+
+        when(issueRepository.findById(issueId))
+            .thenReturn(Optional.empty());
+
+        assertIssueNotFound(issueId, () -> issueService.unassign(issueId));
+    }
+
+    @Test
     void delete_deletesIssue_whenIssueExists() {
         Long issueId = 1L;
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter).build();
 
         when(issueRepository.findById(issueId))
             .thenReturn(Optional.of(issue));
