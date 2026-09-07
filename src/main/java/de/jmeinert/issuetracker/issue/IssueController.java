@@ -79,6 +79,19 @@ public class IssueController {
         return IssueResponse.from(issueService.changeStatus(issueId, request));
     }
 
+    @PatchMapping("/api/issues/{issueId}/assignee")
+    public IssueResponse assignIssue(
+        @Valid @RequestBody AssignIssueRequest request,
+        @PathVariable Long issueId
+    ) {
+        return IssueResponse.from(issueService.assign(issueId, request));
+    }
+
+    @DeleteMapping("/api/issues/{issueId}/assignee")
+    public IssueResponse unassignIssue(@PathVariable Long issueId) {
+        return IssueResponse.from(issueService.unassign(issueId));
+    }
+
     @DeleteMapping("/api/issues/{issueId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteIssue(@PathVariable Long issueId) {

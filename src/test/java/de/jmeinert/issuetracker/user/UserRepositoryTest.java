@@ -31,64 +31,57 @@ class UserRepositoryTest {
 
     @Test
     void existsByUsernameOrEmail_returnsTrue_whenUserHasUsername() {
-        User user = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            true
-        );
+        String username = "testuser";
+
+        User user = new UserTestBuilder()
+            .username(username)
+            .build();
 
         userRepository.saveAndFlush(user);
         entityManager.clear();
 
-        assertThat(userRepository.existsByUsernameOrEmail("TestUser", "test2@test.com"))
+        assertThat(userRepository.existsByUsernameOrEmail(username, "test2@test.com"))
             .isTrue();
     }
 
     @Test
     void existsByUsernameOrEmail_returnsTrue_whenUserHasEmail() {
-        User user = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            true
-        );
+        String email = "testuser@example.com";
+
+        User user = new UserTestBuilder()
+            .email(email)
+            .build();
 
         userRepository.saveAndFlush(user);
         entityManager.clear();
 
-        assertThat(userRepository.existsByUsernameOrEmail("TestUser2", "test@test.com"))
+        assertThat(userRepository.existsByUsernameOrEmail("testuser2", email))
             .isTrue();
     }
 
     @Test
     void existsByUsernameOrEmail_returnsFalse_whenNoUserHasUsernameOrEmail() {
-        User user = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            true
-        );
+        User user = new UserTestBuilder()
+            .username("testuser")
+            .email("testuser@example.com")
+            .build();
 
         userRepository.saveAndFlush(user);
         entityManager.clear();
 
-        assertThat(userRepository.existsByUsernameOrEmail("TestUser2", "test2@test.com"))
+        assertThat(userRepository.existsByUsernameOrEmail("testuser2", "testuser2@example.com"))
             .isFalse();
     }
 
     @Test
     void save_persistsUser() {
-        User user = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            false
-        );
+        User user = new UserTestBuilder()
+            .username("testuser")
+            .email("testuser@example.com")
+            .passwordHash("passwordHash")
+            .role(UserRole.USER)
+            .enabled(false)
+            .build();
         userRepository.saveAndFlush(user);
 
         Long userId = user.getId();
@@ -99,9 +92,9 @@ class UserRepositoryTest {
             .orElseThrow();
 
         assertThat(persistedUser.getId()).isEqualTo(userId);
-        assertThat(persistedUser.getUsername()).isEqualTo("TestUser");
-        assertThat(persistedUser.getEmail()).isEqualTo("test@test.com");
-        assertThat(persistedUser.getPasswordHash()).isEqualTo("TestPasswordHash");
+        assertThat(persistedUser.getUsername()).isEqualTo("testuser");
+        assertThat(persistedUser.getEmail()).isEqualTo("testuser@example.com");
+        assertThat(persistedUser.getPasswordHash()).isEqualTo("passwordHash");
         assertThat(persistedUser.getRole()).isEqualTo(UserRole.USER);
         assertThat(persistedUser.getEnabled()).isFalse();
         assertThat(persistedUser.getCreatedAt()).isNotNull();
@@ -110,13 +103,9 @@ class UserRepositoryTest {
     @ParameterizedTest
     @EnumSource(UserRole.class)
     void save_acceptsEveryUserRole(UserRole role) {
-        User user = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            role,
-            true
-        );
+        User user = new UserTestBuilder()
+            .role(role)
+            .build();
 
         userRepository.saveAndFlush(user);
         entityManager.clear();
@@ -134,13 +123,11 @@ class UserRepositoryTest {
         String email = "a".repeat(255);
         String passwordHash = "a".repeat(255);
 
-        User user = new User(
-            username,
-            email,
-            passwordHash,
-            UserRole.USER,
-            true
-        );
+        User user = new UserTestBuilder()
+            .username(username)
+            .email(email)
+            .passwordHash(passwordHash)
+            .build();
 
         userRepository.saveAndFlush(user);
         entityManager.clear();
@@ -158,23 +145,17 @@ class UserRepositoryTest {
 
     @Test
     void save_rejectsDuplicateUsername() {
-        User user1 = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            false
-        );
+        User user1 = new UserTestBuilder()
+            .username("testuser")
+            .email("testuser@example.com")
+            .build();
         userRepository.saveAndFlush(user1);
         entityManager.clear();
 
-        User user2 = new User(
-            "TestUser",
-            "test2@test.com",
-            "TestPasswordHash2",
-            UserRole.USER,
-            false
-        );
+        User user2 = new UserTestBuilder()
+            .username("testuser")
+            .email("testuser2@example.com")
+            .build();
 
         assertThatThrownBy(() -> userRepository.saveAndFlush(user2))
             .isInstanceOf(DataIntegrityViolationException.class)
@@ -191,23 +172,17 @@ class UserRepositoryTest {
 
     @Test
     void save_rejectsDuplicateEmail() {
-        User user1 = new User(
-            "TestUser",
-            "test@test.com",
-            "TestPasswordHash",
-            UserRole.USER,
-            false
-        );
+        User user1 = new UserTestBuilder()
+            .username("testuser")
+            .email("testuser@example.com")
+            .build();
         userRepository.saveAndFlush(user1);
         entityManager.clear();
 
-        User user2 = new User(
-            "TestUser2",
-            "test@test.com",
-            "TestPasswordHash2",
-            UserRole.USER,
-            false
-        );
+        User user2 = new UserTestBuilder()
+            .username("testuser2")
+            .email("testuser@example.com")
+            .build();
 
         assertThatThrownBy(() -> userRepository.saveAndFlush(user2))
             .isInstanceOf(DataIntegrityViolationException.class)

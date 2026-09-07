@@ -17,6 +17,11 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    public User findById(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    }
+
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
@@ -41,8 +46,7 @@ public class UserService {
     @Transactional
     @IsAdmin
     public User changeEnabled(Long userId, boolean enabled) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
+        User user = findById(userId);
 
         user.changeEnabledTo(enabled);
         return user;

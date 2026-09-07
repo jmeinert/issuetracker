@@ -4,8 +4,12 @@ import de.jmeinert.issuetracker.config.PersistenceConfig;
 import de.jmeinert.issuetracker.config.TestcontainersConfiguration;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectRepository;
+import de.jmeinert.issuetracker.user.User;
+import de.jmeinert.issuetracker.user.UserRepository;
+import de.jmeinert.issuetracker.user.UserTestBuilder;
 
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -34,41 +38,49 @@ class IssueRepositoryTest {
     private IssueRepository issueRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private EntityManager entityManager;
+
+    private Project project;
+
+    private User reporter;
+
+    @BeforeEach
+    void setUp() {
+        project = new Project("TestName", "TestDescription");
+        projectRepository.saveAndFlush(project);
+
+        reporter = new UserTestBuilder()
+            .username("reporter")
+            .email("reporter@example.com")
+            .build();
+        userRepository.saveAndFlush(reporter);
+
+        entityManager.clear();
+    }
 
     @Test
     void findAllByProject_returnsPageOfIssuesOfGivenProject() {
         Project project1 = new Project("TestName", "TestDescription");
         Project project2 = new Project("TestName2", "TestDescription2");
 
-        Issue issue1 = new Issue(
-            "Charlie",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project1
-        );
-        Issue issue2 = new Issue(
-            "Alpha",
-            "TestDescription2",
-            IssueStatus.IN_PROGRESS,
-            IssuePriority.MEDIUM,
-            project1
-        );
-        Issue issue3 = new Issue(
-            "Bravo",
-            "TestDescription3",
-            IssueStatus.RESOLVED,
-            IssuePriority.HIGH,
-            project1
-        );
-        Issue issue4 = new Issue(
-            "Tango",
-            "TestDescription4",
-            IssueStatus.RESOLVED,
-            IssuePriority.HIGH,
-            project2
-        );
+        Issue issue1 = new IssueTestBuilder(project1, reporter)
+            .title("Charlie")
+            .build();
+        Issue issue2 = new IssueTestBuilder(project1, reporter)
+            .title("Alpha")
+            .description("TestDescription2")
+            .build();
+        Issue issue3 = new IssueTestBuilder(project1, reporter)
+            .title("Bravo")
+            .description("TestDescription3")
+            .build();
+        Issue issue4 = new IssueTestBuilder(project2, reporter)
+            .title("Tango")
+            .description("TestDescription4")
+            .build();
 
         Pageable pageable = PageRequest.of(
             2,
@@ -99,16 +111,11 @@ class IssueRepositoryTest {
 
     @Test
     void findAllByProject_returnsEmptyPage_whenProjectHasNoIssues() {
-        Project project = new Project("TestName", "TestDescription");
-
         Pageable pageable = PageRequest.of(
             0,
             20,
             Sort.by(Sort.Order.desc("createdAt"))
         );
-
-        projectRepository.saveAndFlush(project);
-        entityManager.clear();
 
         Page<Issue> issuesOfProject = issueRepository.findAllByProject(project, pageable);
 
@@ -123,16 +130,8 @@ class IssueRepositoryTest {
 
     @Test
     void existsByProject_returnsTrue_whenProjectHasIssues() {
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter).build();
 
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAndFlush(issue);
         entityManager.clear();
 
@@ -141,26 +140,12 @@ class IssueRepositoryTest {
 
     @Test
     void existsByProject_returnsFalse_whenProjectHasNoIssues() {
-        Project project = new Project("TestName", "TestDescription");
-
-        projectRepository.saveAndFlush(project);
-        entityManager.clear();
-
         assertThat(issueRepository.existsByProject(project)).isFalse();
     }
 
     @Test
     void save_persistsIssue() {
-        Project project = new Project("TestName", "TestDescription");
-        projectRepository.saveAndFlush(project);
-
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
         Long projectId = project.getId();
@@ -184,16 +169,10 @@ class IssueRepositoryTest {
     @ParameterizedTest
     @EnumSource(IssueStatus.class)
     void save_acceptsEveryIssueStatus(IssueStatus status) {
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            status,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(status)
+            .build();
 
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAndFlush(issue);
         entityManager.clear();
 
@@ -207,16 +186,10 @@ class IssueRepositoryTest {
     @ParameterizedTest
     @EnumSource(IssuePriority.class)
     void save_acceptsEveryIssuePriority(IssuePriority priority) {
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            priority,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .priority(priority)
+            .build();
 
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAndFlush(issue);
         entityManager.clear();
 
@@ -232,16 +205,11 @@ class IssueRepositoryTest {
         String title = "a".repeat(150);
         String description = "a".repeat(1000);
 
-        Project project = new Project("TestName", "TestDescription");
-        Issue issue = new Issue(
-            title,
-            description,
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .title(title)
+            .description(description)
+            .build();
 
-        projectRepository.saveAndFlush(project);
         issueRepository.saveAndFlush(issue);
         entityManager.clear();
 

@@ -1,6 +1,7 @@
 package de.jmeinert.issuetracker.issue;
 
 import de.jmeinert.issuetracker.project.Project;
+import de.jmeinert.issuetracker.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,6 +54,14 @@ public class Issue {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "reporter_id", nullable = false)
+    private User reporter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -69,13 +78,17 @@ public class Issue {
       String description,
       IssueStatus status,
       IssuePriority priority,
-      Project project
+      Project project,
+      User reporter,
+      User assignee
     ) {
         this.title = title;
         this.description = description;
         this.status = status;
         this.priority = priority;
         this.project = project;
+        this.reporter = reporter;
+        this.assignee = assignee;
     }
 
     public Long getId() {
@@ -102,6 +115,14 @@ public class Issue {
         return project;
     }
 
+    public User getReporter() {
+        return reporter;
+    }
+
+    public User getAssignee() {
+        return assignee;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -118,5 +139,9 @@ public class Issue {
 
     void changeStatusTo(IssueStatus status) {
         this.status = status;
+    }
+
+    void changeAssigneeTo(User assignee) {
+        this.assignee = assignee;
     }
 }

@@ -3,6 +3,10 @@ package de.jmeinert.issuetracker.issue;
 import de.jmeinert.issuetracker.BaseSecurityWebMvcTest;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
+import de.jmeinert.issuetracker.user.User;
+import de.jmeinert.issuetracker.user.UserDisabledException;
+import de.jmeinert.issuetracker.user.UserNotFoundException;
+import de.jmeinert.issuetracker.user.UserTestBuilder;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -42,6 +46,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @MockitoBean
     private IssueService issueService;
 
+    private final Project project = new Project("TestName", "TestDescription");
+
+    private final User reporter = new UserTestBuilder()
+        .username("reporter")
+        .email("reporter@example.com")
+        .build();
+
     @Test
     void getIssues_returns200_whenPaginationParametersAreNotProvided() throws Exception {
         Pageable pageable = PageRequest.of(
@@ -64,24 +75,14 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void getIssues_returns200_whenCustomPaginationAndSortingAreRequested() throws Exception {
         Long projectId = 1L;
-        Project project = new Project("TestName", "TestDescription");
         ReflectionTestUtils.setField(project, "id", projectId);
 
         List<Issue> issues = List.of(
-            new Issue(
-                "TestTitle",
-                "TestDescription",
-                IssueStatus.OPEN,
-                IssuePriority.LOW,
-                project
-            ),
-            new Issue(
-                "TestTitle2",
-                "TestDescription2",
-                IssueStatus.OPEN,
-                IssuePriority.LOW,
-                project
-            )
+            new IssueTestBuilder(project, reporter).build(),
+            new IssueTestBuilder(project, reporter)
+                .title("TestTitle2")
+                .description("TestDescription2")
+                .build()
         );
         Pageable pageable = PageRequest.of(
             1,
@@ -209,16 +210,9 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         Long issueId = 1L;
         Long projectId = 2L;
 
-        Project project = new Project("TestName", "TestDescription");
         ReflectionTestUtils.setField(project, "id", projectId);
 
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter).build();
 
         when(issueService.findById(issueId))
             .thenReturn(issue);
@@ -247,24 +241,14 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void getIssuesByProjectId_returns200_whenProjectExists() throws Exception {
         Long projectId = 1L;
-        Project project = new Project("TestName", "TestDescription");
         ReflectionTestUtils.setField(project, "id", projectId);
 
         List<Issue> issues = List.of(
-            new Issue(
-                "TestTitle",
-                "TestDescription",
-                IssueStatus.OPEN,
-                IssuePriority.LOW,
-                project
-            ),
-            new Issue(
-                "TestTitle2",
-                "TestDescription2",
-                IssueStatus.OPEN,
-                IssuePriority.HIGH,
-                project
-            )
+            new IssueTestBuilder(project, reporter).build(),
+            new IssueTestBuilder(project, reporter)
+                .title("TestTitle2")
+                .description("TestDescription2")
+                .build()
         );
         Pageable pageable = PageRequest.of(
             0,
@@ -307,36 +291,38 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     void createIssue_returns201_whenRequestIsValid() throws Exception {
+        String title = "TestTitle";
+        String description = "TestDescription";
+        IssuePriority priority = IssuePriority.LOW;
         Long projectId = 1L;
 
-        Project project = new Project("TestName", "TestDescription");
         ReflectionTestUtils.setField(project, "id", projectId);
 
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.LOW,
-            project
+        CreateIssueRequest request = new CreateIssueRequest(
+            title,
+            description,
+            priority
         );
 
-        when(issueService.create(eq(projectId), any(CreateIssueRequest.class)))
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+
+        when(issueService.create(projectId, request))
             .thenReturn(issue);
 
         mockMvc.perform(post("/api/projects/{projectId}/issues", projectId)
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "LOW"
+                    "title": "%s",
+                    "description": "%s",
+                    "priority": "%s"
                 }
-                """))
+                """.formatted(title, description, priority)))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.title").value("TestTitle"))
-            .andExpect(jsonPath("$.description").value("TestDescription"))
+            .andExpect(jsonPath("$.title").value(title))
+            .andExpect(jsonPath("$.description").value(description))
             .andExpect(jsonPath("$.status").value("OPEN"))
-            .andExpect(jsonPath("$.priority").value("LOW"))
+            .andExpect(jsonPath("$.priority").value(priority.name()))
             .andExpect(jsonPath("$.projectId").value(projectId));
 
         verify(issueService).create(eq(projectId), any(CreateIssueRequest.class));
@@ -459,16 +445,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         Long issueId = 1L;
         Long projectId = 2L;
 
-        Project project = new Project("TestName", "TestDescription");
         ReflectionTestUtils.setField(project, "id", projectId);
 
-        Issue issue = new Issue(
-            "UpdatedTestTitle",
-            "UpdatedTestDescription",
-            IssueStatus.OPEN,
-            IssuePriority.MEDIUM,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .title("UpdatedTestTitle")
+            .description("UpdatedTestDescription")
+            .priority(IssuePriority.MEDIUM)
+            .build();
 
         when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
             .thenReturn(issue);
@@ -630,16 +613,11 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         Long issueId = 1L;
         Long projectId = 2L;
 
-        Project project = new Project("TestName", "TestDescription");
         ReflectionTestUtils.setField(project, "id", projectId);
 
-        Issue issue = new Issue(
-            "TestTitle",
-            "TestDescription",
-            IssueStatus.IN_PROGRESS,
-            IssuePriority.MEDIUM,
-            project
-        );
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(IssueStatus.IN_PROGRESS)
+            .build();
 
         when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
             .thenReturn(issue);
@@ -732,6 +710,133 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(jsonPath("$.message").value("Invalid request body"));
 
         verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void assignIssue_returns200_whenAssigneeExists() throws Exception {
+        Long issueId = 1L;
+        Long assigneeId = 2L;
+        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
+
+        User assignee = new UserTestBuilder()
+            .id(assigneeId)
+            .username("assignee")
+            .email("assignee@example.com")
+            .build();
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .assignee(assignee)
+            .build();
+
+        when(issueService.assign(issueId, request))
+            .thenReturn(issue);
+
+        mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": %d
+                }
+                """.formatted(assigneeId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.assigneeId").value(assigneeId));
+    }
+
+    @Test
+    void assignIssue_returns400_whenAssigneeIdIsMissing() throws Exception {
+        mockMvc.perform(patch("/api/issues/1/assignee")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {}
+                """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.assigneeId").value("must not be null"));
+
+        verifyNoInteractions(issueService);
+    }
+
+    @Test
+    void assignIssue_returns404_whenIssueDoesNotExist() throws Exception {
+        Long issueId = 5L;
+        Long assigneeId = 2L;
+
+        when(issueService.assign(eq(issueId), any(AssignIssueRequest.class)))
+            .thenThrow(new IssueNotFoundException(issueId));
+
+        mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": %d
+                }
+                """.formatted(assigneeId)))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
+    }
+
+    @Test
+    void assignIssue_returns404_whenAssigneeDoesNotExist() throws Exception {
+        Long issueId = 1L;
+        Long assigneeId = 5L;
+
+        when(issueService.assign(eq(issueId), any(AssignIssueRequest.class)))
+            .thenThrow(new UserNotFoundException(assigneeId));
+
+        mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": %d
+                }
+                """.formatted(assigneeId)))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("User not found with id: " + assigneeId));
+    }
+
+    @Test
+    void assignIssue_returns409_whenAssigneeIsDisabled() throws Exception {
+        Long issueId = 1L;
+        Long assigneeId = 2L;
+
+        when(issueService.assign(eq(issueId), any(AssignIssueRequest.class)))
+            .thenThrow(new UserDisabledException());
+
+        mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": %d
+                }
+                """.formatted(assigneeId)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value("User is disabled"));
+    }
+
+    @Test
+    void unassignIssue_returns200_whenIssueExists() throws Exception {
+        Long issueId = 1L;
+
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+
+        when(issueService.unassign(issueId))
+            .thenReturn(issue);
+
+        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.assigneeId").isEmpty());
+    }
+
+    @Test
+    void unassignIssue_returns404_whenIssueDoesNotExist() throws Exception {
+        Long issueId = 5L;
+
+        when(issueService.unassign(issueId))
+            .thenThrow(new IssueNotFoundException(issueId));
+
+        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }
 
     @Test

@@ -7,6 +7,7 @@ import de.jmeinert.issuetracker.issue.InvalidSortFieldException;
 import de.jmeinert.issuetracker.issue.IssueNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectHasIssuesException;
+import de.jmeinert.issuetracker.user.UserDisabledException;
 import de.jmeinert.issuetracker.user.UserNotFoundException;
 
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,8 @@ public class GlobalExceptionHandler {
         ProjectHasIssuesException.class,
         ClosedIssueUpdateException.class,
         InvalidIssueStatusTransitionException.class,
-        UserAlreadyExistsException.class
+        UserAlreadyExistsException.class,
+        UserDisabledException.class
     })
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(RuntimeException e) {
