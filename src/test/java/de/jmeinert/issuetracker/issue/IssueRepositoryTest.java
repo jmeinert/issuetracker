@@ -131,7 +131,6 @@ class IssueRepositoryTest {
     @Test
     void existsByProject_returnsTrue_whenProjectHasIssues() {
         Issue issue = new IssueTestBuilder(project, reporter).build();
-
         issueRepository.saveAndFlush(issue);
         entityManager.clear();
 
@@ -141,6 +140,58 @@ class IssueRepositoryTest {
     @Test
     void existsByProject_returnsFalse_whenProjectHasNoIssues() {
         assertThat(issueRepository.existsByProject(project)).isFalse();
+    }
+
+    @Test
+    void existsByIdAndParticipantId_returnsTrue_whenIssueExistsAndUserIsTheReporter() {
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+        issueRepository.saveAndFlush(issue);
+        entityManager.clear();
+
+        assertThat(issueRepository.existsByIdAndParticipantId(issue.getId(), reporter.getId()))
+            .isTrue();
+    }
+
+    @Test
+    void existsByIdAndParticipantId_returnsTrue_whenIssueExistsAndUserIsTheAssignee() {
+        User assignee = new UserTestBuilder()
+            .username("assignee")
+            .email("assignee@example.com")
+            .build();
+        userRepository.saveAndFlush(assignee);
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .assignee(assignee)
+            .build();
+        issueRepository.saveAndFlush(issue);
+
+        entityManager.clear();
+
+        assertThat(issueRepository.existsByIdAndParticipantId(issue.getId(), assignee.getId()))
+            .isTrue();
+    }
+
+    @Test
+    void existsByIdAndParticipantId_returnsFalse_whenIssueExistsAndUserIsNeitherReporterNorAssignee() {
+        User user = new UserTestBuilder().build();
+        userRepository.saveAndFlush(user);
+
+        Issue issue1 = new IssueTestBuilder(project, reporter).build();
+        Issue issue2 = new IssueTestBuilder(project, reporter)
+            .assignee(user)
+            .build();
+        issueRepository.saveAllAndFlush(List.of(issue1, issue2));
+
+        entityManager.clear();
+
+        assertThat(issueRepository.existsByIdAndParticipantId(issue1.getId(), user.getId()))
+            .isFalse();
+    }
+
+    @Test
+    void existsByIdAndParticipantId_returnsFalse_whenIssueDoesNotExist() {
+        assertThat(issueRepository.existsByIdAndParticipantId(123L, reporter.getId()))
+            .isFalse();
     }
 
     @Test

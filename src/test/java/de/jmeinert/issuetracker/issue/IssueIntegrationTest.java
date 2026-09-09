@@ -6,6 +6,7 @@ import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectRepository;
 import de.jmeinert.issuetracker.user.User;
 import de.jmeinert.issuetracker.user.UserRepository;
+import de.jmeinert.issuetracker.user.UserRole;
 import de.jmeinert.issuetracker.user.UserTestBuilder;
 
 import jakarta.persistence.EntityManager;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -75,6 +77,7 @@ class IssueIntegrationTest {
             .username("reporter")
             .email("reporter@example.com")
             .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.USER)
             .enabled(true)
             .build();
         userRepository.saveAndFlush(reporter);
@@ -180,6 +183,232 @@ class IssueIntegrationTest {
         entityManager.clear();
         persistedIssue = issueRepository.findById(issueId).orElseThrow();
         assertNull(persistedIssue.getAssignee());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void update_returns200_whenPrincipalIsAnAdmin() throws Exception {
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+        issueRepository.saveAndFlush(issue);
+
+        mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
+            .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
+            .andExpect(jsonPath("$.priority").value("MEDIUM"));
+    }
+
+    @Test
+    void update_returns200_whenPrincipalIsTheReporter() throws Exception {
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+        issueRepository.saveAndFlush(issue);
+
+        String token = login("reporter", "password");
+
+        mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
+            .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
+            .andExpect(jsonPath("$.priority").value("MEDIUM"));
+    }
+
+    @Test
+    void update_returns200_whenPrincipalIsTheAssignee() throws Exception {
+        User assignee = new UserTestBuilder()
+            .username("assignee")
+            .email("assignee@example.com")
+            .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.USER)
+            .enabled(true)
+            .build();
+        userRepository.saveAndFlush(assignee);
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .assignee(assignee)
+            .build();
+        issueRepository.saveAndFlush(issue);
+
+        String token = login("assignee", "password");
+
+        mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
+            .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
+            .andExpect(jsonPath("$.priority").value("MEDIUM"));
+    }
+
+    @Test
+    void update_returns403_whenPrincipalIsNotAParticipant() throws Exception {
+        User user = new UserTestBuilder()
+            .username("user")
+            .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.USER)
+            .enabled(true)
+            .build();
+        userRepository.saveAndFlush(user);
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .title("TestTitle")
+            .description("TestDescription")
+            .priority(IssuePriority.LOW)
+            .build();
+        issueRepository.saveAndFlush(issue);
+
+        Long issueId = issue.getId();
+
+        String token = login("user", "password");
+
+        mockMvc.perform(put("/api/issues/{issueId}", issueId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message").value("Access denied"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Issue persistedIssue = issueRepository.findById(issueId).orElseThrow();
+
+        assertEquals("TestTitle", persistedIssue.getTitle());
+        assertEquals("TestDescription", persistedIssue.getDescription());
+        assertEquals(IssuePriority.LOW, persistedIssue.getPriority());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeStatus_returns200_whenPrincipalIsAnAdmin() throws Exception {
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+        issueRepository.saveAndFlush(issue);
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "IN_PROGRESS"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void changeStatus_returns200_whenPrincipalIsTheReporter() throws Exception {
+        Issue issue = new IssueTestBuilder(project, reporter).build();
+        issueRepository.saveAndFlush(issue);
+
+        String token = login("reporter", "password");
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "IN_PROGRESS"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void changeStatus_returns200_whenPrincipalIsTheAssignee() throws Exception {
+        User assignee = new UserTestBuilder()
+            .username("assignee")
+            .email("assignee@example.com")
+            .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.USER)
+            .enabled(true)
+            .build();
+        userRepository.saveAndFlush(assignee);
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .assignee(assignee)
+            .build();
+        issueRepository.saveAndFlush(issue);
+
+        String token = login("assignee", "password");
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "IN_PROGRESS"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void changeStatus_returns403_whenPrincipalIsNotAParticipant() throws Exception {
+        User user = new UserTestBuilder()
+            .username("user")
+            .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.USER)
+            .enabled(true)
+            .build();
+        userRepository.saveAndFlush(user);
+
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(IssueStatus.OPEN)
+            .build();
+        issueRepository.saveAndFlush(issue);
+
+        Long issueId = issue.getId();
+
+        String token = login("user", "password");
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "IN_PROGRESS"
+                }
+                """))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message").value("Access denied"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Issue persistedIssue = issueRepository.findById(issueId).orElseThrow();
+
+        assertEquals(IssueStatus.OPEN, persistedIssue.getStatus());
     }
 
     private String login(String username, String password) throws Exception {
