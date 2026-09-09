@@ -103,6 +103,7 @@ public class IssueService {
     }
 
     @Transactional
+    @CanModifyIssue
     public Issue update(Long issueId, UpdateIssueRequest request) {
         Issue issue = findById(issueId);
 
@@ -115,6 +116,7 @@ public class IssueService {
     }
 
     @Transactional
+    @CanModifyIssue
     public Issue changeStatus(Long issueId, ChangeIssueStatusRequest request) {
         Issue issue = findById(issueId);
         List<IssueStatus> allowedStatuses = ALLOWED_STATUS_TRANSITIONS.get(issue.getStatus());
