@@ -5,40 +5,30 @@ Issue Tracker is a REST API for managing projects and tracking their associated 
 I built this project to deepen my practical knowledge of Java and the Spring Boot ecosystem after several years
 of professional web development with PHP and TYPO3.
 
-My goal was to go beyond a minimal CRUD demo by adding realistic domain rules, clear API boundaries and automated tests.
-
-> [!NOTE]
-> **Work in progress:** The implemented scope covers project and issue management with persistent PostgreSQL storage,
-> Flyway-managed database migrations and integration tests against PostgreSQL using Testcontainers.
-> Security and deployment infrastructure are planned.
+My goal was to go beyond a minimal CRUD demo by adding realistic workflow rules, PostgreSQL persistence,
+JWT-based authentication, role-based authorization and automated integration tests.
 
 ## Features
 
-### Project management
+### Project and issue management
 
-* Create, retrieve, update and delete projects
-* Input validation using request DTOs
-* Automatic creation and last-modified timestamps
-* Reject deletion of projects that still contain issues
+* Track issues within projects using defined statuses and priorities
+* Query issues with pagination, sorting, combinable filters and case-insensitive text search
+* Enforce status transitions and require closed issues to be reopened before editing
+* Prevent deletion of projects that still contain issues
 
-### Issue management
+### Users and security
 
-* Create issues within a project
-* Query issues with pagination, sorting and combinable filters for project ID, status and priority
-* Case-insensitive search of issue titles and descriptions
-* Retrieve individual issues
-* Retrieve paginated issues belonging to a project
-* Update and delete issues
-* Assign priorities to issues
-* Change issue statuses through a dedicated endpoint
-* Prevent changes to title, description and priority for closed issues
+* Register users and store passwords as Argon2id hashes
+* Issue short-lived JWTs for valid credentials
+* Associate issues with their reporter and optional assignee
+* Restrict operations based on roles and issue ownership
+* Enable or disable users through an administrator endpoint
 
-### Validation and error handling
+### API behavior
 
-* Bean Validation for incoming requests
-* Centralized exception handling
-* Structured error responses
-* Appropriate HTTP status codes for validation errors, missing resources and business-rule conflicts
+* Validate incoming requests with Bean Validation
+* Return consistent, structured error responses
 
 ## Issue workflow
 
@@ -72,6 +62,7 @@ CRITICAL
 * Java 21
 * Spring Boot 4.1
 * Spring Web MVC and Spring Data JPA
+* Spring Security and OAuth2 Resource Server
 * Hibernate
 * PostgreSQL 18
 * Flyway
@@ -84,24 +75,37 @@ CRITICAL
 
 ## Architecture
 
-The codebase is organized by feature, primarily around the `project` and `issue` domains.
-Each domain contains its own controller, service, repository, request DTOs and response DTOs.
+The codebase is organized by feature around the project, issue, user and authentication domains.
+Security, configuration and error handling are kept in dedicated packages.
 
-Business rules are intentionally kept in the service layer, while controllers focus on request validation and
-response mapping. Repositories handle data access through Spring Data JPA, while response DTOs ensure that JPA entities
-are not exposed through the API.
+The feature packages separate HTTP handling, business logic and persistence.
+The API uses dedicated request and response DTOs rather than exposing JPA entities directly.
+
+## Authentication and authorization
+
+The API uses stateless bearer authentication with signed JWTs. Access tokens expire after 15 minutes.
+
+Public registration always creates an enabled user with the `USER` role.
+Clients cannot select or change their own role.
+
+> [!NOTE]
+> Disabling a user blocks future logins but does not revoke existing access tokens.
+> They remain valid for up to 15 minutes.
+
+### Local administrator
+
+For local development, Flyway seeds the following administrator:
+
+Username: `admin` <br>
+Password: `testpassword1234`
 
 ## Testing
 
 The service layer is covered by unit tests using JUnit 5 and Mockito.
 Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
-Parameterized service tests cover all allowed and rejected issue status transitions.
+Integration tests run against PostgreSQL using Testcontainers, with Flyway managing the test schema.
 
-Persistence and query integration tests run against PostgreSQL using Testcontainers.
-Flyway creates the database schema before Hibernate validates the JPA mappings.
-Docker must be available, but no manually running PostgreSQL database is required.
-
-GitHub Actions runs the complete build verification on pushes to `main` and pull requests targeting `main`.
+GitHub Actions runs `./mvnw verify` on pushes to `main` and pull requests targeting `main`.
 
 Run the complete test suite:
 
@@ -129,6 +133,16 @@ git clone https://github.com/jmeinert/issuetracker.git
 cd issuetracker
 cp .env.example .env
 ```
+
+### Generate JWT secret
+
+Generate a Base64-encoded JWT signing secret containing at least 32 bytes:
+
+```bash
+openssl rand -base64 32
+```
+
+Store the generated value as `JWT_SECRET` in the `.env` file.
 
 ### Start PostgreSQL container
 
@@ -168,36 +182,86 @@ docker compose down -v
 
 ## API endpoints
 
+### Authentication
+
+| Method | Endpoint             | Access | Description     |
+|--------|----------------------|--------|-----------------|
+| `POST` | `/api/auth/register` | Public | Register a user |
+| `POST` | `/api/auth/login`    | Public | Obtain a JWT    |
+
+### Users
+
+| Method  | Endpoint                      | Access | Description              |
+|---------|-------------------------------|--------|--------------------------|
+| `PATCH` | `/api/users/{userId}/enabled` | Admin  | Enable or disable a user |
+
 ### Projects
 
-| Method   | Endpoint             | Description              |
-|----------|----------------------|--------------------------|
-| `GET`    | `/api/projects`      | Retrieve all projects    |
-| `GET`    | `/api/projects/{id}` | Retrieve a project by ID |
-| `POST`   | `/api/projects`      | Create a project         |
-| `PUT`    | `/api/projects/{id}` | Update a project         |
-| `DELETE` | `/api/projects/{id}` | Delete a project         |
+| Method   | Endpoint             | Access             | Description              |
+|----------|----------------------|--------------------|--------------------------|
+| `GET`    | `/api/projects`      | Authenticated user | Retrieve all projects    |
+| `GET`    | `/api/projects/{id}` | Authenticated user | Retrieve a project by ID |
+| `POST`   | `/api/projects`      | Admin              | Create a project         |
+| `PUT`    | `/api/projects/{id}` | Admin              | Update a project         |
+| `DELETE` | `/api/projects/{id}` | Admin              | Delete a project         |
 
 ### Issues
 
-| Method   | Endpoint                           | Description                                                      |
-|----------|------------------------------------|------------------------------------------------------------------|
-| `GET`    | `/api/issues`                      | Query issues with pagination, sorting, filtering and text search |
-| `GET`    | `/api/projects/{projectId}/issues` | Retrieve paginated issues for a project                          |
-| `POST`   | `/api/projects/{projectId}/issues` | Create an issue within a project                                 |
-| `GET`    | `/api/issues/{issueId}`            | Retrieve an issue by ID                                          |
-| `PUT`    | `/api/issues/{issueId}`            | Update an issue                                                  |
-| `PATCH`  | `/api/issues/{issueId}/status`     | Change the status of an issue                                    |
-| `DELETE` | `/api/issues/{issueId}`            | Delete an issue                                                  |
+| Method   | Endpoint                           | Access                    | Description                                                      |
+|----------|------------------------------------|---------------------------|------------------------------------------------------------------|
+| `GET`    | `/api/issues`                      | Authenticated user        | Query issues with pagination, sorting, filtering and text search |
+| `GET`    | `/api/projects/{projectId}/issues` | Authenticated user        | Retrieve paginated issues for a project                          |
+| `POST`   | `/api/projects/{projectId}/issues` | Authenticated user        | Create an issue within a project                                 |
+| `GET`    | `/api/issues/{issueId}`            | Authenticated user        | Retrieve an issue by ID                                          |
+| `PUT`    | `/api/issues/{issueId}`            | Admin, Reporter, Assignee | Update an issue                                                  |
+| `PATCH`  | `/api/issues/{issueId}/status`     | Admin, Reporter, Assignee | Change the status of an issue                                    |
+| `PATCH`  | `/api/issues/{issueId}/assignee`   | Admin                     | Assign or reassign an issue                                      |
+| `DELETE` | `/api/issues/{issueId}/assignee`   | Admin                     | Remove the current assignee                                      |
+| `DELETE` | `/api/issues/{issueId}`            | Admin                     | Delete an issue                                                  |
 
 ## Example requests
 
-The examples assume an empty database and should be run in order.
+The examples assume a freshly initialized local database.
+The seeded local administrator is used for admin-only operations.
+
+### Register a regular user
+
+```bash
+curl -i -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "testpassword1234"
+  }'
+```
+
+### Log in as the local administrator
+
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "testpassword1234"
+  }'
+```
+
+Example response:
+
+```json
+{
+  "token": "<signed-jwt>"
+}
+```
+
+Use the returned token for every protected request.
 
 ### Create a project
 
 ```bash
 curl -X POST http://localhost:8080/api/projects \
+  -H "Authorization: Bearer <signed-jwt>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Customer Portal",
@@ -221,6 +285,7 @@ Example response:
 
 ```bash
 curl -X POST http://localhost:8080/api/projects/1/issues \
+  -H "Authorization: Bearer <signed-jwt>" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Fix mobile navigation",
@@ -235,6 +300,7 @@ New issues automatically receive the `OPEN` status.
 
 ```bash
 curl -X PATCH http://localhost:8080/api/issues/1/status \
+  -H "Authorization: Bearer <signed-jwt>" \
   -H "Content-Type: application/json" \
   -d '{
     "status": "IN_PROGRESS"
@@ -245,6 +311,5 @@ curl -X PATCH http://localhost:8080/api/issues/1/status \
 
 Planned improvements include:
 
-* [ ] Authentication and authorization with Spring Security
 * [ ] OpenAPI documentation
 * [ ] Containerized application deployment

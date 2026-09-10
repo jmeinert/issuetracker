@@ -1,20 +1,26 @@
 ### Get issues with pagination
 GET http://localhost:8080/api/issues?page=0&size=20
+Authorization: Bearer {{auth_token}}
 
 ### Get issues sorted by title
 GET http://localhost:8080/api/issues?sort=title,asc
+Authorization: Bearer {{auth_token}}
 
 ### Get issues with combined filters
 GET http://localhost:8080/api/issues?projectId=1&status=IN_PROGRESS&priority=MEDIUM&search=navigation
+Authorization: Bearer {{auth_token}}
 
 ### Get issues for a project
 GET http://localhost:8080/api/projects/1/issues
+Authorization: Bearer {{auth_token}}
 
 ### Get an issue by ID
 GET http://localhost:8080/api/issues/1
+Authorization: Bearer {{auth_token}}
 
 ### Create an issue
 POST http://localhost:8080/api/projects/1/issues
+Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
@@ -25,6 +31,7 @@ Content-Type: application/json
 
 ### Update an issue
 PUT http://localhost:8080/api/issues/1
+Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
@@ -35,6 +42,7 @@ Content-Type: application/json
 
 ### Change an issue status
 PATCH http://localhost:8080/api/issues/1/status
+Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
@@ -43,6 +51,7 @@ Content-Type: application/json
 
 ### Assign issue
 PATCH http://localhost:8080/api/issues/1/assignee
+Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
@@ -51,6 +60,8 @@ Content-Type: application/json
 
 ### Unassign issue
 DELETE http://localhost:8080/api/issues/1/assignee
+Authorization: Bearer {{auth_token}}
 
 ### Delete an issue
 DELETE http://localhost:8080/api/issues/1
+Authorization: Bearer {{auth_token}}
