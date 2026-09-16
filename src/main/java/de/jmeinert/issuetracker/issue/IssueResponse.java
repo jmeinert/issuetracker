@@ -1,16 +1,18 @@
 package de.jmeinert.issuetracker.issue;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.Instant;
 
 public record IssueResponse(
     Long id,
     String title,
-    String description,
+    @Schema(types = {"string", "null"}) String description,
     IssueStatus status,
     IssuePriority priority,
     Long projectId,
     Long reporterId,
-    Long assigneeId,
+    @Schema(types = {"integer", "null"}) Long assigneeId,
     Instant createdAt,
     Instant updatedAt
 ) {

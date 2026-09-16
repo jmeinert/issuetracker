@@ -28,9 +28,9 @@ public class ProjectService {
         return projectRepository.findAll();
     }
 
-    public Project findById(Long id) {
-        return projectRepository.findById(id)
-            .orElseThrow(() -> new ProjectNotFoundException(id));
+    public Project findById(Long projectId) {
+        return projectRepository.findById(projectId)
+            .orElseThrow(() -> new ProjectNotFoundException(projectId));
     }
 
     @Transactional
@@ -43,19 +43,19 @@ public class ProjectService {
 
     @Transactional
     @IsAdmin
-    public Project update(Long id, String name, String description) {
-        Project project = findById(id);
+    public Project update(Long projectId, String name, String description) {
+        Project project = findById(projectId);
         project.updateDetails(name, description);
         return project;
     }
 
     @Transactional
     @IsAdmin
-    public void delete(Long id) {
-        Project project = findById(id);
+    public void delete(Long projectId) {
+        Project project = findById(projectId);
 
         if (issueRepository.existsByProject(project)) {
-            throw new ProjectHasIssuesException(id);
+            throw new ProjectHasIssuesException(projectId);
         }
 
         projectRepository.delete(project);

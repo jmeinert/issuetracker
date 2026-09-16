@@ -1,11 +1,13 @@
 package de.jmeinert.issuetracker.project;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.Instant;
 
 public record ProjectResponse(
     Long id,
     String name,
-    String description,
+    @Schema(types = {"string", "null"}) String description,
     Instant createdAt,
     Instant updatedAt
 ) {
