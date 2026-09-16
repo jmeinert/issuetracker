@@ -12,3 +12,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+springdoc:
+  default-produces-media-type: application/json
+  override-with-generic-response: false

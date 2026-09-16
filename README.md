@@ -180,6 +180,13 @@ Stop PostgreSQL and delete its data:
 docker compose down -v
 ```
 
+## API documentation
+
+[Scalar](http://localhost:8080/scalar) documents all endpoints, schemas and responses.
+Protected endpoints can be called using the JWT returned by `POST /api/auth/login`.
+
+The generated [OpenAPI document](http://localhost:8080/v3/api-docs) is also available as JSON.
+
 ## API endpoints
 
 ### Authentication
@@ -197,13 +204,13 @@ docker compose down -v
 
 ### Projects
 
-| Method   | Endpoint             | Access             | Description              |
-|----------|----------------------|--------------------|--------------------------|
-| `GET`    | `/api/projects`      | Authenticated user | Retrieve all projects    |
-| `GET`    | `/api/projects/{id}` | Authenticated user | Retrieve a project by ID |
-| `POST`   | `/api/projects`      | Admin              | Create a project         |
-| `PUT`    | `/api/projects/{id}` | Admin              | Update a project         |
-| `DELETE` | `/api/projects/{id}` | Admin              | Delete a project         |
+| Method   | Endpoint                    | Access             | Description              |
+|----------|-----------------------------|--------------------|--------------------------|
+| `GET`    | `/api/projects`             | Authenticated user | Retrieve all projects    |
+| `GET`    | `/api/projects/{projectId}` | Authenticated user | Retrieve a project by ID |
+| `POST`   | `/api/projects`             | Admin              | Create a project         |
+| `PUT`    | `/api/projects/{projectId}` | Admin              | Update a project         |
+| `DELETE` | `/api/projects/{projectId}` | Admin              | Delete a project         |
 
 ### Issues
 
@@ -281,35 +288,8 @@ Example response:
 }
 ```
 
-### Create an issue
-
-```bash
-curl -X POST http://localhost:8080/api/projects/1/issues \
-  -H "Authorization: Bearer <signed-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Fix mobile navigation",
-    "description": "The navigation menu does not close after selecting a link on small screens.",
-    "priority": "HIGH"
-  }'
-```
-
-New issues automatically receive the `OPEN` status.
-
-### Change an issue status
-
-```bash
-curl -X PATCH http://localhost:8080/api/issues/1/status \
-  -H "Authorization: Bearer <signed-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "IN_PROGRESS"
-  }'
-```
-
 ## Roadmap
 
 Planned improvements include:
 
-* [ ] OpenAPI documentation
-* [ ] Containerized application deployment
+* [ ] Containerize the application

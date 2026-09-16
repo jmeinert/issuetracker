@@ -1,7 +1,19 @@
 package de.jmeinert.issuetracker.project;
 
-import jakarta.validation.Valid;
+import de.jmeinert.issuetracker.openapi.BadRequestResponse;
+import de.jmeinert.issuetracker.openapi.ConflictResponse;
+import de.jmeinert.issuetracker.openapi.CreatedResponse;
+import de.jmeinert.issuetracker.openapi.NoContentResponse;
+import de.jmeinert.issuetracker.openapi.NotFoundResponse;
+import de.jmeinert.issuetracker.openapi.OkResponse;
+import de.jmeinert.issuetracker.openapi.OpenApiConfig;
+import de.jmeinert.issuetracker.openapi.RestrictedEndpointResponses;
+import de.jmeinert.issuetracker.openapi.UnauthorizedResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +29,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
+@SecurityRequirement(name = OpenApiConfig.JWT_BEARER_SECURITY_SCHEME)
+@Tag(name = "Projects")
 public class ProjectController {
 
     private final ProjectService projectService;
@@ -26,35 +40,56 @@ public class ProjectController {
     }
 
     @GetMapping
+    @Operation(summary = "Retrieve all projects")
+    @OkResponse(description = "List of projects")
+    @UnauthorizedResponse
     public List<ProjectResponse> getAll() {
         return projectService.findAll().stream()
             .map(ProjectResponse::from)
             .toList();
     }
 
-    @GetMapping("/{id}")
-    public ProjectResponse getProjectById(@PathVariable Long id) {
-        return ProjectResponse.from(projectService.findById(id));
+    @GetMapping("/{projectId}")
+    @Operation(summary = "Retrieve a project by ID")
+    @OkResponse(description = "Project")
+    @NotFoundResponse(description = "Project not found")
+    @UnauthorizedResponse
+    public ProjectResponse getProjectById(@PathVariable Long projectId) {
+        return ProjectResponse.from(projectService.findById(projectId));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a project")
+    @CreatedResponse(description = "Project created")
+    @BadRequestResponse
+    @RestrictedEndpointResponses
     public ProjectResponse createProject(@Valid @RequestBody ProjectRequest projectRequest) {
         return ProjectResponse.from(
             projectService.create(projectRequest.name(), projectRequest.description())
         );
     }
 
-    @PutMapping("/{id}")
-    public ProjectResponse updateProject(@PathVariable Long id, @Valid @RequestBody ProjectRequest projectRequest) {
+    @PutMapping("/{projectId}")
+    @Operation(summary = "Update a project")
+    @OkResponse(description = "Project updated")
+    @NotFoundResponse(description = "Project not found")
+    @BadRequestResponse
+    @RestrictedEndpointResponses
+    public ProjectResponse updateProject(@PathVariable Long projectId, @Valid @RequestBody ProjectRequest projectRequest) {
         return ProjectResponse.from(
-            projectService.update(id, projectRequest.name(), projectRequest.description())
+            projectService.update(projectId, projectRequest.name(), projectRequest.description())
         );
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{projectId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteProject(@PathVariable Long id) {
-        projectService.delete(id);
+    @Operation(summary = "Delete a project")
+    @NoContentResponse
+    @NotFoundResponse(description = "Project not found")
+    @ConflictResponse(description = "Project has issues")
+    @RestrictedEndpointResponses
+    public void deleteProject(@PathVariable Long projectId) {
+        projectService.delete(projectId);
     }
 }

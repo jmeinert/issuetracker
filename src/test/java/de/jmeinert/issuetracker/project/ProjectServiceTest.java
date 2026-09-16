@@ -47,12 +47,12 @@ class ProjectServiceTest {
 
     @Test
     void findById_throwsProjectNotFoundException_whenProjectDoesNotExist() {
-        Long id = 5L;
+        Long projectId = 5L;
 
-        when(projectRepository.findById(id))
+        when(projectRepository.findById(projectId))
             .thenReturn(Optional.empty());
 
-        assertProjectNotFound(id, () -> projectService.findById(id));
+        assertProjectNotFound(projectId, () -> projectService.findById(projectId));
     }
 
     @Test
@@ -69,17 +69,17 @@ class ProjectServiceTest {
 
     @Test
     void update_updatesProject_whenProjectExists() {
-        Long id = 1L;
+        Long projectId = 1L;
         Project project = new Project("Testname", "TestDescription");
         String updatedName = "UpdatedTestName";
         String updatedDescription = "UpdatedTestDescription";
 
-        when(projectRepository.findById(id))
+        when(projectRepository.findById(projectId))
             .thenReturn(Optional.of(project));
 
-        Project updatedProject = projectService.update(id, updatedName, updatedDescription);
+        Project updatedProject = projectService.update(projectId, updatedName, updatedDescription);
 
-        verify(projectRepository).findById(id);
+        verify(projectRepository).findById(projectId);
 
         assertEquals(updatedName, updatedProject.getName());
         assertEquals(updatedDescription, updatedProject.getDescription());
@@ -87,51 +87,51 @@ class ProjectServiceTest {
 
     @Test
     void update_throwsProjectNotFoundException_whenProjectDoesNotExist() {
-        Long id = 5L;
+        Long projectId = 5L;
 
-        when(projectRepository.findById(id))
+        when(projectRepository.findById(projectId))
             .thenReturn(Optional.empty());
 
-        assertProjectNotFound(id, () -> projectService.update(id, "UpdatedTestName", "UpdatedTestDescription"));
+        assertProjectNotFound(projectId, () -> projectService.update(projectId, "UpdatedTestName", "UpdatedTestDescription"));
     }
 
     @Test
     void delete_deletesProject_whenProjectExistsAndHasNoIssues() {
-        Long id = 1L;
+        Long projectId = 1L;
         Project project = new Project("Testname", "TestDescription");
 
-        when(projectRepository.findById(id))
+        when(projectRepository.findById(projectId))
             .thenReturn(Optional.of(project));
 
         when(issueRepository.existsByProject(project))
             .thenReturn(false);
 
-        projectService.delete(id);
+        projectService.delete(projectId);
 
-        verify(projectRepository).findById(id);
+        verify(projectRepository).findById(projectId);
         verify(projectRepository).delete(project);
     }
 
     @Test
     void delete_throwsProjectNotFoundException_whenProjectDoesNotExist() {
-        Long id = 5L;
+        Long projectId = 5L;
 
-        when(projectRepository.findById(id))
+        when(projectRepository.findById(projectId))
             .thenReturn(Optional.empty());
 
-        assertProjectNotFound(id, () -> projectService.delete(id));
+        assertProjectNotFound(projectId, () -> projectService.delete(projectId));
 
-        verify(projectRepository).findById(id);
+        verify(projectRepository).findById(projectId);
         verifyNoMoreInteractions(projectRepository);
         verifyNoInteractions(issueRepository);
     }
 
     @Test
     void delete_throwsProjectHasIssuesException_whenProjectHasIssues() {
-        Long id = 1L;
+        Long projectId = 1L;
         Project project = new Project("Testname", "TestDescription");
 
-        when(projectRepository.findById(id))
+        when(projectRepository.findById(projectId))
             .thenReturn(Optional.of(project));
 
         when(issueRepository.existsByProject(project))
@@ -139,22 +139,22 @@ class ProjectServiceTest {
 
         ProjectHasIssuesException exception = assertThrows(
             ProjectHasIssuesException.class,
-            () -> projectService.delete(id)
+            () -> projectService.delete(projectId)
         );
         assertEquals(
-            "Project with id " + id + " cannot be deleted because it still contains issues.",
+            "Project with id " + projectId + " cannot be deleted because it still contains issues.",
             exception.getMessage()
         );
 
-        verify(projectRepository).findById(id);
+        verify(projectRepository).findById(projectId);
         verifyNoMoreInteractions(projectRepository);
     }
 
-    private void assertProjectNotFound(Long id, Executable executable) {
+    private void assertProjectNotFound(Long projectId, Executable executable) {
         ProjectNotFoundException exception = assertThrows(
             ProjectNotFoundException.class,
             executable
         );
-        assertEquals("Project not found with id: " + id, exception.getMessage());
+        assertEquals("Project not found with id: " + projectId, exception.getMessage());
     }
 }
