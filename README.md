@@ -32,6 +32,12 @@ JWT-based authentication, role-based authorization and automated integration tes
 * Validate incoming requests with Bean Validation
 * Return consistent, structured error responses
 
+### Build and runtime
+
+* Run the complete application stack with Docker Compose
+* Build the application image from source using a multi-stage Docker build
+* Run Maven verification and build the Docker image with GitHub Actions
+
 ## Issue workflow
 
 New issues are automatically created with the `OPEN` status.
@@ -125,7 +131,6 @@ Run the complete build verification:
 
 ### Prerequisites
 
-* Java 21
 * Docker with Docker Compose
 
 Clone the repository and create the local environment file:
@@ -146,13 +151,37 @@ openssl rand -base64 32
 
 Store the generated value as `JWT_SECRET` in the `.env` file.
 
-### Start PostgreSQL container
+The environment file configures the following values:
+
+| Variable            | Required | Description                                   |
+|---------------------|----------|-----------------------------------------------|
+| `POSTGRES_DB`       | Yes      | Name of the PostgreSQL database               |
+| `POSTGRES_USER`     | Yes      | PostgreSQL user used by the application       |
+| `POSTGRES_PASSWORD` | Yes      | Password for the PostgreSQL user              |
+| `JWT_SECRET`        | Yes      | Base64-encoded JWT signing secret             |
+| `APPLICATION_PORT`  | No       | Host port for the API (defaults to `8080`)    |
+| `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`) |
+
+### Start the complete application
+
+Build the application image and start both the API and PostgreSQL:
+
+```bash
+docker compose up --build
+```
+
+By default, the API is available at `http://localhost:8080`.
+
+### Run the application from source
+
+Running the application outside Docker additionally requires Java 21.
+Start only PostgreSQL:
 
 ```bash
 docker compose up -d postgres
 ```
 
-### Start application from CLI (Bash)
+#### Command line (Bash)
 
 ```bash
 set -a
@@ -161,22 +190,14 @@ set +a
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-### Start application from IntelliJ
+#### IntelliJ
 
-Activate the `local` Spring profile and provide the variables from `.env` in the run configuration.
+Activate the `local` Spring profile and provide the variables from `.env` in the IntelliJ run configuration.
 Then run `IssuetrackerApplication`.
 
-The API is available at `http://localhost:8080`.
+### Reset PostgreSQL
 
-### Stop or reset PostgreSQL container
-
-Stop PostgreSQL while retaining its data:
-
-```bash
-docker compose down
-```
-
-Stop PostgreSQL and delete its data:
+To reset the PostgreSQL database, remove its Docker volume:
 
 ```bash
 docker compose down -v
@@ -289,9 +310,3 @@ Example response:
   "updatedAt": "2026-07-27T12:00:00Z"
 }
 ```
-
-## Roadmap
-
-Planned improvements include:
-
-* [ ] Containerize the application
