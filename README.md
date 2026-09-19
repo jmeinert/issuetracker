@@ -1,5 +1,7 @@
 # Issue Tracker
 
+[![CI](https://github.com/jmeinert/issuetracker/actions/workflows/ci.yaml/badge.svg)](https://github.com/jmeinert/issuetracker/actions/workflows/ci.yaml)
+
 Issue Tracker is a REST API for managing projects and tracking their associated issues through a defined workflow.
 
 I built this project to deepen my practical knowledge of Java and the Spring Boot ecosystem after several years
