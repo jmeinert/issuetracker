@@ -4,6 +4,7 @@ import de.jmeinert.issuetracker.auth.LoginResponse;
 import de.jmeinert.issuetracker.config.TestcontainersConfiguration;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectRepository;
+import de.jmeinert.issuetracker.project.ProjectResponse;
 import de.jmeinert.issuetracker.user.User;
 import de.jmeinert.issuetracker.user.UserRepository;
 import de.jmeinert.issuetracker.user.UserRole;
@@ -409,6 +410,121 @@ class IssueIntegrationTest {
         Issue persistedIssue = issueRepository.findById(issueId).orElseThrow();
 
         assertEquals(IssueStatus.OPEN, persistedIssue.getStatus());
+    }
+
+    @Test
+    void changeStatus_returns409_whenStatusTransitionIsInvalid() throws Exception {
+        Issue issue = new IssueTestBuilder(project, reporter)
+            .status(IssueStatus.OPEN)
+            .build();
+        issueRepository.saveAndFlush(issue);
+
+        String token = login("reporter", "password");
+
+        mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "status": "CLOSED"
+                }
+                """))
+            .andExpect(status().isConflict());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Issue persistedIssue = issueRepository.findById(issue.getId()).orElseThrow();
+
+        assertEquals(IssueStatus.OPEN, persistedIssue.getStatus());
+    }
+
+    @Test
+    void issueWorkflow_adminCreatesAndAssignsIssueAndAssigneeUpdatesIt() throws Exception {
+        User admin = new UserTestBuilder()
+            .username("admin")
+            .email("admin@example.com")
+            .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.ADMIN)
+            .build();
+        User assignee = new UserTestBuilder()
+            .username("assignee")
+            .email("assignee@example.com")
+            .passwordHash(passwordEncoder.encode("password"))
+            .role(UserRole.USER)
+            .build();
+        userRepository.saveAllAndFlush(List.of(admin, assignee));
+
+        String adminToken = login("admin", "password");
+
+        String projectResponse = mockMvc.perform(post("/api/projects")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "name": "TestName",
+                    "description": "TestDescription"
+                }
+                """))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        Long projectId = jsonMapper.readValue(projectResponse, ProjectResponse.class).id();
+
+        String issueResponse = mockMvc.perform(post("/api/projects/{projectId}/issues", projectId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "TestTitle",
+                    "description": "TestDescription",
+                    "priority": "LOW"
+                }
+                """))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        Long issueId = jsonMapper.readValue(issueResponse, IssueResponse.class).id();
+
+        mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "assigneeId": %d
+                }
+                """.formatted(assignee.getId())))
+            .andExpect(status().isOk());
+
+        String assigneeToken = login("assignee", "password");
+
+        mockMvc.perform(put("/api/issues/{issueId}", issueId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + assigneeToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "UpdatedTestTitle",
+                    "description": "UpdatedTestDescription",
+                    "priority": "MEDIUM"
+                }
+                """))
+            .andExpect(status().isOk());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Issue persistedIssue = issueRepository.findById(issueId).orElseThrow();
+
+        assertEquals("UpdatedTestTitle", persistedIssue.getTitle());
+        assertEquals("UpdatedTestDescription", persistedIssue.getDescription());
+        assertEquals(IssuePriority.MEDIUM, persistedIssue.getPriority());
+        assertEquals(projectId, persistedIssue.getProject().getId());
+        assertEquals(admin.getId(), persistedIssue.getReporter().getId());
+        assertEquals(assignee.getId(), persistedIssue.getAssignee().getId());
     }
 
     private String login(String username, String password) throws Exception {
