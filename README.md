@@ -115,13 +115,13 @@ Integration tests run against PostgreSQL using Testcontainers, with Flyway manag
 
 GitHub Actions runs `./mvnw verify` on pushes to `main` and pull requests targeting `main`.
 
-Run the complete test suite:
+Run unit and controller tests:
 
 ```bash
 ./mvnw test
 ```
 
-Run the complete build verification:
+Run the complete test suite:
 
 ```bash
 ./mvnw verify

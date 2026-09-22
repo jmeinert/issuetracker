@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @WithMockUser(roles = "ADMIN")
-class AdminAuthorizationIntegrationTest {
+class AdminAuthorizationIT {
 
     @Autowired
     private MockMvc mockMvc;

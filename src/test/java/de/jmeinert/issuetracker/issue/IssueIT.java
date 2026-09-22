@@ -1,6 +1,6 @@
 package de.jmeinert.issuetracker.issue;
 
-import de.jmeinert.issuetracker.auth.LoginResponse;
+import de.jmeinert.issuetracker.auth.AuthTestHelper;
 import de.jmeinert.issuetracker.config.TestcontainersConfiguration;
 import de.jmeinert.issuetracker.project.Project;
 import de.jmeinert.issuetracker.project.ProjectRepository;
@@ -42,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-class IssueIntegrationTest {
+class IssueIT {
 
     @Autowired
     private MockMvc mockMvc;
@@ -69,6 +69,8 @@ class IssueIntegrationTest {
 
     private User reporter;
 
+    private AuthTestHelper auth;
+
     @BeforeEach
     void setUp() {
         project = new Project("TestName", "TestDescription");
@@ -82,11 +84,13 @@ class IssueIntegrationTest {
             .enabled(true)
             .build();
         userRepository.saveAndFlush(reporter);
+
+        auth = new AuthTestHelper(mockMvc, jsonMapper);
     }
 
     @Test
     void create_persistsIssueWithAuthenticatedUserAsReporter() throws Exception {
-        String token = login("reporter", "password");
+        String token = auth.login("reporter", "password");
 
         mockMvc.perform(post("/api/projects/{projectId}/issues", project.getId())
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -212,7 +216,7 @@ class IssueIntegrationTest {
         Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
-        String token = login("reporter", "password");
+        String token = auth.login("reporter", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -246,7 +250,7 @@ class IssueIntegrationTest {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        String token = login("assignee", "password");
+        String token = auth.login("assignee", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -283,7 +287,7 @@ class IssueIntegrationTest {
 
         Long issueId = issue.getId();
 
-        String token = login("user", "password");
+        String token = auth.login("user", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -330,7 +334,7 @@ class IssueIntegrationTest {
         Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
-        String token = login("reporter", "password");
+        String token = auth.login("reporter", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -360,7 +364,7 @@ class IssueIntegrationTest {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        String token = login("assignee", "password");
+        String token = auth.login("assignee", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -391,7 +395,7 @@ class IssueIntegrationTest {
 
         Long issueId = issue.getId();
 
-        String token = login("user", "password");
+        String token = auth.login("user", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -419,7 +423,7 @@ class IssueIntegrationTest {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        String token = login("reporter", "password");
+        String token = auth.login("reporter", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -455,7 +459,7 @@ class IssueIntegrationTest {
             .build();
         userRepository.saveAllAndFlush(List.of(admin, assignee));
 
-        String adminToken = login("admin", "password");
+        String adminToken = auth.login("admin", "password");
 
         String projectResponse = mockMvc.perform(post("/api/projects")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -500,7 +504,7 @@ class IssueIntegrationTest {
                 """.formatted(assignee.getId())))
             .andExpect(status().isOk());
 
-        String assigneeToken = login("assignee", "password");
+        String assigneeToken = auth.login("assignee", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + assigneeToken)
@@ -525,24 +529,5 @@ class IssueIntegrationTest {
         assertEquals(projectId, persistedIssue.getProject().getId());
         assertEquals(admin.getId(), persistedIssue.getReporter().getId());
         assertEquals(assignee.getId(), persistedIssue.getAssignee().getId());
-    }
-
-    private String login(String username, String password) throws Exception {
-        String response = mockMvc.perform(post("/api/auth/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "username": "%s",
-                    "password": "%s"
-                }
-                """.formatted(username, password)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.token").isNotEmpty())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-        LoginResponse loginResponse = jsonMapper.readValue(response, LoginResponse.class);
-        return loginResponse.token();
     }
 }

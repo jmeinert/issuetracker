@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     IssueService.class,
     AuthenticatedUserProvider.class
 })
-class IssueQueryIntegrationTest {
+class IssueQueryIT {
 
     @MockitoBean
     private ProjectService projectService;

@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @ActiveProfiles("test")
 @Import({TestcontainersConfiguration.class, PersistenceConfig.class})
-class IssueRepositoryTest {
+class IssueRepositoryIT {
 
     @Autowired
     private ProjectRepository projectRepository;

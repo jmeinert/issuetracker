@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-class OpenApiSmokeTest {
+class OpenApiSmokeIT {
 
     @Autowired
     private MockMvc mockMvc;
