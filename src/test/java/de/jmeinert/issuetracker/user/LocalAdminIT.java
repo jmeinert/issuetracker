@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 @ActiveProfiles({"local", "test"})
 @Import(TestcontainersConfiguration.class)
-class LocalAdminTest {
+class LocalAdminIT {
 
     @Autowired
     private UserRepository userRepository;

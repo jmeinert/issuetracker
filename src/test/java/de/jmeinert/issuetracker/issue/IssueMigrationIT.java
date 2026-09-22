@@ -15,7 +15,7 @@ import java.sql.Statement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class IssueMigrationTest {
+class IssueMigrationIT {
 
     private static final PostgreSQLContainer postgres =
         new PostgreSQLContainer(DockerImageName.parse("postgres:18"));

@@ -5,6 +5,7 @@ import de.jmeinert.issuetracker.user.User;
 import de.jmeinert.issuetracker.user.UserRepository;
 import de.jmeinert.issuetracker.user.UserRole;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-class AuthIntegrationTest {
+class AuthIT {
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,6 +44,13 @@ class AuthIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    private AuthTestHelper auth;
+
+    @BeforeEach
+    void setUp() {
+        auth = new AuthTestHelper(mockMvc, jsonMapper);
+    }
 
     @Test
     void register_persistsNormalizedUserWithEncodedPasswordAndDefaults() throws Exception {
@@ -95,7 +103,7 @@ class AuthIntegrationTest {
                 """.formatted(username, email, password)))
             .andExpect(status().isCreated());
 
-        String token = login(username, password);
+        String token = auth.login(username, password);
 
         // Access protected endpoint with given JWT token
         mockMvc.perform(get("/api/projects")
@@ -112,7 +120,7 @@ class AuthIntegrationTest {
 
         saveUser(username, email, password, UserRole.ADMIN, true);
 
-        String token = login(username, password);
+        String token = auth.login(username, password);
 
         // Access protected endpoint with given JWT token
         mockMvc.perform(get("/api/projects")
@@ -191,24 +199,5 @@ class AuthIntegrationTest {
             role,
             enabled
         ));
-    }
-
-    private String login(String username, String password) throws Exception {
-        String response = mockMvc.perform(post("/api/auth/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "username": "%s",
-                    "password": "%s"
-                }
-                """.formatted(username, password)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.token").isNotEmpty())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-        LoginResponse loginResponse = jsonMapper.readValue(response, LoginResponse.class);
-        return loginResponse.token();
     }
 }

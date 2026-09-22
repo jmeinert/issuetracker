@@ -325,7 +325,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(jsonPath("$.priority").value(priority.name()))
             .andExpect(jsonPath("$.projectId").value(projectId));
 
-        verify(issueService).create(eq(projectId), any(CreateIssueRequest.class));
+        verify(issueService).create(projectId, request);
     }
 
     @Test
@@ -444,40 +444,51 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     void updateIssue_returns200_whenIssueExists() throws Exception {
         Long issueId = 1L;
         Long projectId = 2L;
+        String title = "UpdatedTestTitle";
+        String description = "UpdatedTestDescription";
+        IssuePriority priority = IssuePriority.MEDIUM;
 
         ReflectionTestUtils.setField(project, "id", projectId);
 
+        UpdateIssueRequest request = new UpdateIssueRequest(title, description, priority);
+
         Issue issue = new IssueTestBuilder(project, reporter)
-            .title("UpdatedTestTitle")
-            .description("UpdatedTestDescription")
-            .priority(IssuePriority.MEDIUM)
+            .title(title)
+            .description(description)
+            .priority(priority)
             .build();
 
-        when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
+        when(issueService.update(issueId, request))
             .thenReturn(issue);
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
+                    "title": "%s",
+                    "description": "%s",
+                    "priority": "%s"
                 }
-                """))
+                """.formatted(title, description, priority)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
-            .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
-            .andExpect(jsonPath("$.priority").value("MEDIUM"));
+            .andExpect(jsonPath("$.title").value(title))
+            .andExpect(jsonPath("$.description").value(description))
+            .andExpect(jsonPath("$.priority").value(priority.name()));
 
-        verify(issueService).update(eq(issueId), any(UpdateIssueRequest.class));
+        verify(issueService).update(issueId, request);
     }
 
     @Test
     void updateIssue_returns404_whenIssueDoesNotExist() throws Exception {
         Long issueId = 1L;
 
-        when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
+        UpdateIssueRequest request = new UpdateIssueRequest(
+            "UpdatedTestTitle",
+            "UpdatedTestDescription",
+            IssuePriority.MEDIUM
+        );
+
+        when(issueService.update(issueId, request))
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
@@ -589,7 +600,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     void updateIssue_returns409_whenIssueIsClosed() throws Exception {
         Long issueId = 1L;
 
-        when(issueService.update(eq(issueId), any(UpdateIssueRequest.class)))
+        UpdateIssueRequest request = new UpdateIssueRequest(
+            "UpdatedTestTitle",
+            "UpdatedTestDescription",
+            IssuePriority.MEDIUM
+        );
+
+        when(issueService.update(issueId, request))
             .thenThrow(new ClosedIssueUpdateException(issueId));
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
@@ -605,21 +622,24 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(jsonPath("$.message")
                 .value("Issue with id " + issueId + " is closed and cannot be updated."));
 
-        verify(issueService).update(eq(issueId), any(UpdateIssueRequest.class));
+        verify(issueService).update(issueId, request);
     }
 
     @Test
     void changeIssueStatus_returns200_whenIssueExistsAndTransitionIsAllowed() throws Exception {
         Long issueId = 1L;
         Long projectId = 2L;
+        IssueStatus status = IssueStatus.IN_PROGRESS;
 
         ReflectionTestUtils.setField(project, "id", projectId);
 
+        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(status);
+
         Issue issue = new IssueTestBuilder(project, reporter)
-            .status(IssueStatus.IN_PROGRESS)
+            .status(status)
             .build();
 
-        when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
+        when(issueService.changeStatus(issueId, request))
             .thenReturn(issue);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
@@ -630,16 +650,18 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
                 }
                 """))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+            .andExpect(jsonPath("$.status").value(status.name()));
 
-        verify(issueService).changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class));
+        verify(issueService).changeStatus(issueId, request);
     }
 
     @Test
     void changeIssueStatus_returns404_whenIssueDoesNotExist() throws Exception {
         Long issueId = 1L;
 
-        when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
+        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(IssueStatus.IN_PROGRESS);
+
+        when(issueService.changeStatus(issueId, request))
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
@@ -660,6 +682,8 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         IssueStatus targetStatus = IssueStatus.OPEN;
         List<IssueStatus> allowedStatuses = List.of(IssueStatus.IN_PROGRESS);
 
+        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
+
         InvalidIssueStatusTransitionException exception = new InvalidIssueStatusTransitionException(
             issueId,
             currentStatus,
@@ -667,7 +691,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             allowedStatuses
         );
 
-        when(issueService.changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class)))
+        when(issueService.changeStatus(issueId, request))
             .thenThrow(exception);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
@@ -680,7 +704,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message").value(exception.getMessage()));
 
-        verify(issueService).changeStatus(eq(issueId), any(ChangeIssueStatusRequest.class));
+        verify(issueService).changeStatus(issueId, request);
     }
 
     @Test

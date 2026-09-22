@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DataJpaTest
 @ActiveProfiles("test")
 @Import({TestcontainersConfiguration.class, PersistenceConfig.class})
-class ProjectRepositoryTest {
+class ProjectRepositoryIT {
 
     @Autowired
     private ProjectRepository projectRepository;
