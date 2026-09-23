@@ -77,8 +77,14 @@ public class AuthService {
                 continue;
             }
 
+            String constraintName = constraintViolationException.getConstraintName();
+
+            if (constraintName == null) {
+                return false;
+            }
+
             boolean hasDuplicateUserConstraintName
-                = DUPLICATE_USER_CONSTRAINT_NAMES.contains(constraintViolationException.getConstraintName());
+                = DUPLICATE_USER_CONSTRAINT_NAMES.contains(constraintName);
             boolean isUniqueConstraint
                 = constraintViolationException.getKind() == ConstraintViolationException.ConstraintKind.UNIQUE;
             return hasDuplicateUserConstraintName && isUniqueConstraint;
