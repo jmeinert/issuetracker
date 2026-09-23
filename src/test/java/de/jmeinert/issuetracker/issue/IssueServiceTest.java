@@ -320,12 +320,11 @@ class IssueServiceTest {
         Issue issue = new IssueTestBuilder(project, reporter)
             .status(currentStatus)
             .build();
-        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
 
         when(issueRepository.findById(issueId))
             .thenReturn(Optional.of(issue));
 
-        Issue changedIssue = issueService.changeStatus(issueId, request);
+        Issue changedIssue = issueService.changeStatus(issueId, targetStatus);
 
         assertEquals(targetStatus, changedIssue.getStatus());
     }
@@ -351,14 +350,13 @@ class IssueServiceTest {
         Issue issue = new IssueTestBuilder(project, reporter)
             .status(currentStatus)
             .build();
-        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
 
         when(issueRepository.findById(issueId))
             .thenReturn(Optional.of(issue));
 
         assertThrows(
             InvalidIssueStatusTransitionException.class,
-            () -> issueService.changeStatus(issueId, request)
+            () -> issueService.changeStatus(issueId, targetStatus)
         );
 
         assertEquals(currentStatus, issue.getStatus());
@@ -367,19 +365,17 @@ class IssueServiceTest {
     @Test
     void changeStatus_throwsIssueNotFoundException_whenIssueDoesNotExist() {
         Long issueId = 5L;
-        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(IssueStatus.IN_PROGRESS);
 
         when(issueRepository.findById(issueId))
             .thenReturn(Optional.empty());
 
-        assertIssueNotFound(issueId, () -> issueService.changeStatus(issueId, request));
+        assertIssueNotFound(issueId, () -> issueService.changeStatus(issueId, IssueStatus.IN_PROGRESS));
     }
 
     @Test
     void assign_assignsUserToIssue_whenAssigneeExists() {
         Long issueId = 1L;
         Long assigneeId = 2L;
-        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
 
         Issue issue = new IssueTestBuilder(project, reporter).build();
 
@@ -396,7 +392,7 @@ class IssueServiceTest {
         when(userService.findById(assigneeId))
             .thenReturn(assignee);
 
-        Issue changedIssue = issueService.assign(issueId, request);
+        Issue changedIssue = issueService.assign(issueId, assigneeId);
 
         assertEquals(assigneeId, changedIssue.getAssignee().getId());
     }
@@ -405,19 +401,17 @@ class IssueServiceTest {
     void assign_throwsIssueNotFoundException_whenIssueDoesNotExist() {
         Long issueId = 5L;
         Long assigneeId = 2L;
-        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
 
         when(issueRepository.findById(issueId))
             .thenReturn(Optional.empty());
 
-        assertIssueNotFound(issueId, () -> issueService.assign(issueId, request));
+        assertIssueNotFound(issueId, () -> issueService.assign(issueId, assigneeId));
     }
 
     @Test
     void assign_throwsUserNotFoundException_whenAssigneeDoesNotExist() {
         Long issueId = 1L;
         Long assigneeId = 5L;
-        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
 
         Issue issue = new IssueTestBuilder(project, reporter).build();
 
@@ -429,7 +423,7 @@ class IssueServiceTest {
 
         UserNotFoundException exception = assertThrows(
             UserNotFoundException.class,
-            () -> issueService.assign(issueId, request)
+            () -> issueService.assign(issueId, assigneeId)
         );
         assertEquals("User not found with id: " + assigneeId, exception.getMessage());
     }
@@ -438,7 +432,6 @@ class IssueServiceTest {
     void assign_throwsUserDisabledException_whenAssigneeIsDisabled() {
         Long issueId = 1L;
         Long assigneeId = 2L;
-        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
 
         Issue issue = new IssueTestBuilder(project, reporter).build();
 
@@ -456,7 +449,7 @@ class IssueServiceTest {
 
         UserDisabledException exception = assertThrows(
             UserDisabledException.class,
-            () -> issueService.assign(issueId, request)
+            () -> issueService.assign(issueId, assigneeId)
         );
         assertEquals("User is disabled", exception.getMessage());
     }

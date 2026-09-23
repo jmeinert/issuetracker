@@ -35,17 +35,17 @@ public class ProjectService {
 
     @Transactional
     @IsAdmin
-    public Project create(String name, String description) {
-        Project project = new Project(name, description);
+    public Project create(ProjectRequest request) {
+        Project project = new Project(request.name(), request.description());
 
         return projectRepository.save(project);
     }
 
     @Transactional
     @IsAdmin
-    public Project update(Long projectId, String name, String description) {
+    public Project update(Long projectId, ProjectRequest request) {
         Project project = findById(projectId);
-        project.updateDetails(name, description);
+        project.updateDetails(request.name(), request.description());
         return project;
     }
 

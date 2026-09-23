@@ -60,7 +60,9 @@ class ProjectServiceTest {
         String name = "TestName";
         String description = "TestDescription";
 
-        projectService.create(name, description);
+        ProjectRequest request = new ProjectRequest(name, description);
+
+        projectService.create(request);
         verify(projectRepository).save(projectArgumentCaptor.capture());
 
         assertEquals(name, projectArgumentCaptor.getValue().getName());
@@ -74,10 +76,12 @@ class ProjectServiceTest {
         String updatedName = "UpdatedTestName";
         String updatedDescription = "UpdatedTestDescription";
 
+        ProjectRequest request = new ProjectRequest(updatedName, updatedDescription);
+
         when(projectRepository.findById(projectId))
             .thenReturn(Optional.of(project));
 
-        Project updatedProject = projectService.update(projectId, updatedName, updatedDescription);
+        Project updatedProject = projectService.update(projectId, request);
 
         verify(projectRepository).findById(projectId);
 
@@ -89,10 +93,15 @@ class ProjectServiceTest {
     void update_throwsProjectNotFoundException_whenProjectDoesNotExist() {
         Long projectId = 5L;
 
+        ProjectRequest request = new ProjectRequest(
+            "UpdatedTestName",
+            "UpdatedTestDescription"
+        );
+
         when(projectRepository.findById(projectId))
             .thenReturn(Optional.empty());
 
-        assertProjectNotFound(projectId, () -> projectService.update(projectId, "UpdatedTestName", "UpdatedTestDescription"));
+        assertProjectNotFound(projectId, () -> projectService.update(projectId, request));
     }
 
     @Test

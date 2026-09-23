@@ -633,13 +633,11 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
 
         ReflectionTestUtils.setField(project, "id", projectId);
 
-        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(status);
-
         Issue issue = new IssueTestBuilder(project, reporter)
             .status(status)
             .build();
 
-        when(issueService.changeStatus(issueId, request))
+        when(issueService.changeStatus(issueId, status))
             .thenReturn(issue);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
@@ -652,16 +650,14 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value(status.name()));
 
-        verify(issueService).changeStatus(issueId, request);
+        verify(issueService).changeStatus(issueId, status);
     }
 
     @Test
     void changeIssueStatus_returns404_whenIssueDoesNotExist() throws Exception {
         Long issueId = 1L;
 
-        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(IssueStatus.IN_PROGRESS);
-
-        when(issueService.changeStatus(issueId, request))
+        when(issueService.changeStatus(issueId, IssueStatus.IN_PROGRESS))
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
@@ -682,8 +678,6 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         IssueStatus targetStatus = IssueStatus.OPEN;
         List<IssueStatus> allowedStatuses = List.of(IssueStatus.IN_PROGRESS);
 
-        ChangeIssueStatusRequest request = new ChangeIssueStatusRequest(targetStatus);
-
         InvalidIssueStatusTransitionException exception = new InvalidIssueStatusTransitionException(
             issueId,
             currentStatus,
@@ -691,7 +685,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             allowedStatuses
         );
 
-        when(issueService.changeStatus(issueId, request))
+        when(issueService.changeStatus(issueId, targetStatus))
             .thenThrow(exception);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
@@ -704,7 +698,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message").value(exception.getMessage()));
 
-        verify(issueService).changeStatus(issueId, request);
+        verify(issueService).changeStatus(issueId, targetStatus);
     }
 
     @Test
@@ -740,7 +734,6 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     void assignIssue_returns200_whenAssigneeExists() throws Exception {
         Long issueId = 1L;
         Long assigneeId = 2L;
-        AssignIssueRequest request = new AssignIssueRequest(assigneeId);
 
         User assignee = new UserTestBuilder()
             .id(assigneeId)
@@ -752,7 +745,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .assignee(assignee)
             .build();
 
-        when(issueService.assign(issueId, request))
+        when(issueService.assign(issueId, assigneeId))
             .thenReturn(issue);
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
@@ -785,7 +778,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         Long issueId = 5L;
         Long assigneeId = 2L;
 
-        when(issueService.assign(eq(issueId), any(AssignIssueRequest.class)))
+        when(issueService.assign(issueId, assigneeId))
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
@@ -804,7 +797,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         Long issueId = 1L;
         Long assigneeId = 5L;
 
-        when(issueService.assign(eq(issueId), any(AssignIssueRequest.class)))
+        when(issueService.assign(issueId, assigneeId))
             .thenThrow(new UserNotFoundException(assigneeId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
@@ -823,7 +816,7 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         Long issueId = 1L;
         Long assigneeId = 2L;
 
-        when(issueService.assign(eq(issueId), any(AssignIssueRequest.class)))
+        when(issueService.assign(issueId, assigneeId))
             .thenThrow(new UserDisabledException());
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
