@@ -62,7 +62,7 @@ public class AuthService {
 
     public String login(LoginRequest request) {
         var authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
-            UserNormalizer.normalizeUsername(request.username()),
+            request.username(),
             request.password()
         );
 

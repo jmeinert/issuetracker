@@ -167,16 +167,15 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_normalizesUsernameAuthenticatesAndGeneratesToken() {
+    void login_authenticatesAndGeneratesToken() {
         String username = "   TestUser   ";
         String password = "TestPassword1234";
-        String normalizedUsername = "testuser";
         String expectedToken = "token";
 
         LoginRequest request = new LoginRequest(username, password);
 
         var authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
-            normalizedUsername,
+            username,
             password
         );
 
