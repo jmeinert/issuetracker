@@ -2,6 +2,7 @@ package de.jmeinert.issuetracker.auth;
 
 import de.jmeinert.issuetracker.user.UserService;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -73,11 +74,9 @@ class AuthServiceTest {
 
     @Test
     void register_throwsUserAlreadyExistsException_whenUsernameOrEmailAlreadyExists() {
-        String username = "   TestUser   ";
-        String email = "Test@Example.com";
+        String username = "testuser";
+        String email = "test@example.com";
         String password = "TestPassword1234";
-        String normalizedUsername = "testuser";
-        String normalizedEmail = "test@example.com";
 
         RegisterRequest request = new RegisterRequest(
             username,
@@ -85,7 +84,7 @@ class AuthServiceTest {
             password
         );
 
-        when(userService.existsByUsernameOrEmail(normalizedUsername, normalizedEmail))
+        when(userService.existsByUsernameOrEmail(username, email))
             .thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
@@ -98,17 +97,15 @@ class AuthServiceTest {
         );
 
         verifyNoInteractions(passwordEncoder);
-        verify(userService).existsByUsernameOrEmail(normalizedUsername, normalizedEmail);
+        verify(userService).existsByUsernameOrEmail(username, email);
         verify(userService, never()).create(anyString(), anyString(), anyString());
     }
 
     @Test
     void register_rethrowsDataIntegrityViolationException_whenNotCausedByDuplicateUserConstraint() {
-        String username = "   TestUser   ";
-        String email = "Test@Example.com";
+        String username = "testuser";
+        String email = "test@example.com";
         String password = "TestPassword1234";
-        String normalizedUsername = "testuser";
-        String normalizedEmail = "test@example.com";
         String encodedPassword = "EncodedPassword";
 
         RegisterRequest request = new RegisterRequest(
@@ -119,13 +116,46 @@ class AuthServiceTest {
 
         var expectedException = new DataIntegrityViolationException("Unrelated constraint violation");
 
-        when(userService.existsByUsernameOrEmail(normalizedUsername, normalizedEmail))
+        when(userService.existsByUsernameOrEmail(username, email))
             .thenReturn(false);
 
         when(passwordEncoder.encode(password))
             .thenReturn(encodedPassword);
 
-        when(userService.create(normalizedUsername, normalizedEmail, encodedPassword))
+        when(userService.create(username, email, encodedPassword))
+            .thenThrow(expectedException);
+
+        DataIntegrityViolationException actualException = assertThrows(
+            DataIntegrityViolationException.class,
+            () -> authService.register(request)
+        );
+
+        assertSame(expectedException, actualException);
+    }
+
+    @Test
+    void register_rethrowsDataIntegrityViolationException_whenConstraintNameIsUnknown() {
+        String username = "testuser";
+        String email = "test@example.com";
+        String password = "TestPassword1234";
+        String encodedPassword = "EncodedPassword";
+
+        RegisterRequest request = new RegisterRequest(
+            username,
+            email,
+            password
+        );
+
+        var cause = new ConstraintViolationException("Violation with unknown constraint name", null, null);
+        var expectedException = new DataIntegrityViolationException("Some violation", cause);
+
+        when(userService.existsByUsernameOrEmail(username, email))
+            .thenReturn(false);
+
+        when(passwordEncoder.encode(password))
+            .thenReturn(encodedPassword);
+
+        when(userService.create(username, email, encodedPassword))
             .thenThrow(expectedException);
 
         DataIntegrityViolationException actualException = assertThrows(
