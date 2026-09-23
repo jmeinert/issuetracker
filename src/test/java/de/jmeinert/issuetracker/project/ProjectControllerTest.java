@@ -80,20 +80,25 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     void createProject_returns201_whenRequestIsValid() throws Exception {
-        when(projectService.create("TestName", "TestDescription"))
-            .thenReturn(new Project("TestName", "TestDescription"));
+        String name = "TestName";
+        String description = "TestDescription";
+
+        ProjectRequest request = new ProjectRequest(name, description);
+
+        when(projectService.create(request))
+            .thenReturn(new Project(name, description));
 
         mockMvc.perform(post("/api/projects")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
-                    "name": "TestName",
-                    "description": "TestDescription"
+                    "name": "%s",
+                    "description": "%s"
                 }
-                """))
+                """.formatted(name, description)))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.name").value("TestName"))
-            .andExpect(jsonPath("$.description").value("TestDescription"));
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.description").value(description));
     }
 
     @Test
@@ -153,35 +158,45 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     void updateProject_returns200_whenProjectExists() throws Exception {
-        when(projectService.update(1L, "TestName", "UpdatedTestDescription"))
-            .thenReturn(new Project("TestName", "UpdatedTestDescription"));
+        String name = "TestName";
+        String description = "UpdatedTestDescription";
+
+        ProjectRequest request = new ProjectRequest(name, description);
+
+        when(projectService.update(1L, request))
+            .thenReturn(new Project(name, description));
 
         mockMvc.perform(put("/api/projects/1")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
-                    "name": "TestName",
-                    "description": "UpdatedTestDescription"
+                    "name": "%s",
+                    "description": "%s"
                 }
-                """))
+                """.formatted(name, description)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.name").value("TestName"))
-            .andExpect(jsonPath("$.description").value("UpdatedTestDescription"));
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.description").value(description));
     }
 
     @Test
     void updateProject_returns404_whenProjectDoesNotExist() throws Exception {
-        when(projectService.update(5L, "TestName", "UpdatedTestDescription"))
+        String name = "TestName";
+        String description = "UpdatedTestDescription";
+
+        ProjectRequest request = new ProjectRequest(name, description);
+
+        when(projectService.update(5L, request))
             .thenThrow(new ProjectNotFoundException(5L));
 
         mockMvc.perform(put("/api/projects/5")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
-                    "name": "TestName",
-                    "description": "UpdatedTestDescription"
+                    "name": "%s",
+                    "description": "%s"
                 }
-                """))
+                """.formatted(name, description)))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Project not found with id: 5"));
     }

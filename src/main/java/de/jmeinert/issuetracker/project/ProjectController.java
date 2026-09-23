@@ -64,10 +64,8 @@ public class ProjectController {
     @CreatedResponse(description = "Project created")
     @BadRequestResponse
     @RestrictedEndpointResponses
-    public ProjectResponse createProject(@Valid @RequestBody ProjectRequest projectRequest) {
-        return ProjectResponse.from(
-            projectService.create(projectRequest.name(), projectRequest.description())
-        );
+    public ProjectResponse createProject(@Valid @RequestBody ProjectRequest request) {
+        return ProjectResponse.from(projectService.create(request));
     }
 
     @PutMapping("/{projectId}")
@@ -76,10 +74,8 @@ public class ProjectController {
     @NotFoundResponse(description = "Project not found")
     @BadRequestResponse
     @RestrictedEndpointResponses
-    public ProjectResponse updateProject(@PathVariable Long projectId, @Valid @RequestBody ProjectRequest projectRequest) {
-        return ProjectResponse.from(
-            projectService.update(projectId, projectRequest.name(), projectRequest.description())
-        );
+    public ProjectResponse updateProject(@PathVariable Long projectId, @Valid @RequestBody ProjectRequest request) {
+        return ProjectResponse.from(projectService.update(projectId, request));
     }
 
     @DeleteMapping("/{projectId}")

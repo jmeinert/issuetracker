@@ -117,10 +117,9 @@ public class IssueService {
 
     @Transactional
     @CanModifyIssue
-    public Issue changeStatus(Long issueId, ChangeIssueStatusRequest request) {
+    public Issue changeStatus(Long issueId, IssueStatus targetStatus) {
         Issue issue = findById(issueId);
         List<IssueStatus> allowedStatuses = ALLOWED_STATUS_TRANSITIONS.get(issue.getStatus());
-        IssueStatus targetStatus = request.status();
 
         if (!allowedStatuses.contains(targetStatus)) {
             throw new InvalidIssueStatusTransitionException(
@@ -137,9 +136,9 @@ public class IssueService {
 
     @Transactional
     @IsAdmin
-    public Issue assign(Long issueId, AssignIssueRequest request) {
+    public Issue assign(Long issueId, Long assigneeId) {
         Issue issue = findById(issueId);
-        User assignee = userService.findById(request.assigneeId());
+        User assignee = userService.findById(assigneeId);
 
         if (!assignee.getEnabled()) {
             throw new UserDisabledException();

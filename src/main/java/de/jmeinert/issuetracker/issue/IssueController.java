@@ -137,7 +137,7 @@ public class IssueController {
         @Valid @RequestBody ChangeIssueStatusRequest request,
         @PathVariable Long issueId
     ) {
-        return IssueResponse.from(issueService.changeStatus(issueId, request));
+        return IssueResponse.from(issueService.changeStatus(issueId, request.status()));
     }
 
     @PatchMapping("/api/issues/{issueId}/assignee")
@@ -151,7 +151,7 @@ public class IssueController {
         @Valid @RequestBody AssignIssueRequest request,
         @PathVariable Long issueId
     ) {
-        return IssueResponse.from(issueService.assign(issueId, request));
+        return IssueResponse.from(issueService.assign(issueId, request.assigneeId()));
     }
 
     @DeleteMapping("/api/issues/{issueId}/assignee")
