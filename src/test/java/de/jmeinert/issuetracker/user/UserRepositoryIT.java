@@ -96,7 +96,7 @@ class UserRepositoryIT {
         assertThat(persistedUser.getEmail()).isEqualTo("testuser@example.com");
         assertThat(persistedUser.getPasswordHash()).isEqualTo("passwordHash");
         assertThat(persistedUser.getRole()).isEqualTo(UserRole.USER);
-        assertThat(persistedUser.getEnabled()).isFalse();
+        assertThat(persistedUser.isEnabled()).isFalse();
         assertThat(persistedUser.getCreatedAt()).isNotNull();
     }
 

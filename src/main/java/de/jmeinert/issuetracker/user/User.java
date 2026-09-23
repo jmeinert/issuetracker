@@ -86,7 +86,7 @@ public class User {
         return role;
     }
 
-    public boolean getEnabled() {
+    public boolean isEnabled() {
         return enabled;
     }
 

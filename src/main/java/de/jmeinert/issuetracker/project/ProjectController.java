@@ -43,7 +43,7 @@ public class ProjectController {
     @Operation(summary = "Retrieve all projects")
     @OkResponse(description = "List of projects")
     @UnauthorizedResponse
-    public List<ProjectResponse> getAll() {
+    public List<ProjectResponse> getProjects() {
         return projectService.findAll().stream()
             .map(ProjectResponse::from)
             .toList();

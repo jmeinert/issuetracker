@@ -82,7 +82,7 @@ class AuthIT {
         assertThat(passwordEncoder.matches(password, user.getPasswordHash())).isTrue();
         assertThat(user.getPasswordHash()).startsWith("{argon2id}");
         assertThat(user.getRole()).isEqualTo(UserRole.USER);
-        assertThat(user.getEnabled()).isTrue();
+        assertThat(user.isEnabled()).isTrue();
         assertThat(user.getCreatedAt()).isNotNull();
     }
 

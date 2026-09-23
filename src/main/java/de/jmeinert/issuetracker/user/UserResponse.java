@@ -12,7 +12,7 @@ public record UserResponse(
             user.getUsername(),
             user.getEmail(),
             user.getRole(),
-            user.getEnabled()
+            user.isEnabled()
         );
     }
 }
