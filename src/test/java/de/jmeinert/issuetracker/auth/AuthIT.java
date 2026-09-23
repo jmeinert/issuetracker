@@ -105,26 +105,25 @@ class AuthIT {
 
         String token = auth.login(username, password);
 
-        // Access protected endpoint with given JWT token
         mockMvc.perform(get("/api/projects")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(authenticated().withRoles("USER"));
     }
 
     @Test
-    void login_adminRoleClaimIsMappedToValidRole() throws Exception {
-        String username = "testuser";
+    void login_withUnnormalizedUsername_mapsAdminRoleClaimToValidRole() throws Exception {
+        String username = "   TestUser   ";
+        String normalizedUsername = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser(username, email, password, UserRole.ADMIN, true);
+        saveUser(normalizedUsername, email, password, UserRole.ADMIN, true);
 
         String token = auth.login(username, password);
 
-        // Access protected endpoint with given JWT token
         mockMvc.perform(get("/api/projects")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(authenticated().withRoles("ADMIN"));
     }
