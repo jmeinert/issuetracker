@@ -79,9 +79,9 @@ public class IssueService {
         return issueRepository.findAllByProject(project, getValidatedPageable(pageable));
     }
 
-    public Issue findById(Long id) {
-        return issueRepository.findById(id)
-            .orElseThrow(() -> new IssueNotFoundException(id));
+    public Issue findById(Long issueId) {
+        return issueRepository.findById(issueId)
+            .orElseThrow(() -> new IssueNotFoundException(issueId));
     }
 
     @Transactional
@@ -140,7 +140,7 @@ public class IssueService {
         Issue issue = findById(issueId);
         User assignee = userService.findById(assigneeId);
 
-        if (!assignee.getEnabled()) {
+        if (!assignee.isEnabled()) {
             throw new UserDisabledException();
         }
 

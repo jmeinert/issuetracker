@@ -43,7 +43,7 @@ class UserServiceTest {
 
         User changedUser = userService.changeEnabled(userId, targetEnabled);
 
-        assertEquals(targetEnabled, changedUser.getEnabled());
+        assertEquals(targetEnabled, changedUser.isEnabled());
     }
 
     @Test

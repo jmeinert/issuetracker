@@ -30,7 +30,7 @@ class LocalAdminIT {
 
         assertThat(admin.getEmail()).isEqualTo("admin@localhost.invalid");
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
-        assertThat(admin.getEnabled()).isTrue();
+        assertThat(admin.isEnabled()).isTrue();
         assertThat(admin.getPasswordHash()).startsWith("{argon2id}");
         assertThat(passwordEncoder.matches(
             "testpassword1234",
