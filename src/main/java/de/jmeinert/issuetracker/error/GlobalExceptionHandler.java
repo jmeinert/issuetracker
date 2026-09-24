@@ -11,16 +11,20 @@ import de.jmeinert.issuetracker.user.UserDisabledException;
 import de.jmeinert.issuetracker.user.UserNotFoundException;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 import java.util.Objects;
@@ -100,7 +104,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+    public ErrorResponse handleHttpMessageNotReadableException() {
         return new ErrorResponse("Invalid request body");
     }
 
@@ -109,7 +113,29 @@ public class GlobalExceptionHandler {
         AccountStatusException.class
     })
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorResponse handleLoginExceptions(RuntimeException e) {
+    public ErrorResponse handleLoginExceptions() {
         return new ErrorResponse("Invalid username or password");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(
+        HttpRequestMethodNotSupportedException e
+    ) {
+        return ResponseEntity
+            .status(HttpStatus.METHOD_NOT_ALLOWED)
+            .headers(e.getHeaders())
+            .body(new ErrorResponse("Method Not Allowed"));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public ErrorResponse handleHttpMediaTypeNotSupportedException() {
+        return new ErrorResponse("Unsupported Media Type");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleNoResourceFoundException() {
+        return new ErrorResponse("Not Found");
     }
 }
