@@ -38,33 +38,6 @@ JWT-based authentication, role-based authorization and automated integration tes
 * Build the application image from source using a multi-stage Docker build
 * Run Maven verification and build the Docker image with GitHub Actions
 
-## Issue workflow
-
-New issues are automatically created with the `OPEN` status.
-
-The following status transitions are allowed:
-
-```text
-OPEN        -> IN_PROGRESS
-IN_PROGRESS -> RESOLVED
-IN_PROGRESS -> CLOSED
-RESOLVED    -> IN_PROGRESS
-RESOLVED    -> CLOSED
-CLOSED      -> OPEN
-```
-
-Invalid status transitions are rejected with an HTTP `409 Conflict` response.
-To model a simple issue workflow, closed issues must be reopened before their title, description or priority can be changed.
-
-Issues use one of the following priorities:
-
-```text
-LOW
-MEDIUM
-HIGH
-CRITICAL
-```
-
 ## Tech stack
 
 * Java 21
@@ -77,55 +50,9 @@ CRITICAL
 * Docker Compose
 * Jakarta Bean Validation
 * Maven
-* JUnit 5, Mockito and MockMvc
+* JUnit, Mockito and MockMvc
 * Testcontainers
 * GitHub Actions
-
-## Architecture
-
-The codebase is organized by feature around the project, issue, user and authentication domains.
-Security, configuration and error handling are kept in dedicated packages.
-
-The feature packages separate HTTP handling, business logic and persistence.
-The API uses dedicated request and response DTOs rather than exposing JPA entities directly.
-
-## Authentication and authorization
-
-The API uses stateless bearer authentication with signed JWTs. Access tokens expire after 15 minutes.
-
-Public registration always creates an enabled user with the `USER` role.
-Clients cannot select or change their own role.
-
-> [!NOTE]
-> Disabling a user blocks future logins but does not revoke existing access tokens.
-> They remain valid for up to 15 minutes.
-
-### Local administrator
-
-For local development, Flyway seeds the following administrator:
-
-Username: `admin` <br>
-Password: `testpassword1234`
-
-## Testing
-
-The service layer is covered by unit tests using JUnit 5 and Mockito.
-Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
-Integration tests run against PostgreSQL using Testcontainers, with Flyway managing the test schema.
-
-GitHub Actions runs `./mvnw verify` on pushes to `main` and pull requests targeting `main`.
-
-Run unit and controller tests:
-
-```bash
-./mvnw test
-```
-
-Run the complete test suite:
-
-```bash
-./mvnw verify
-```
 
 ## Getting started
 
@@ -141,7 +68,7 @@ cd issuetracker
 cp .env.example .env
 ```
 
-### Generate JWT secret
+### Configure environment
 
 Generate a Base64-encoded JWT signing secret containing at least 32 bytes:
 
@@ -162,7 +89,7 @@ The environment file configures the following values:
 | `APPLICATION_PORT`  | No       | Host port for the API (defaults to `8080`)    |
 | `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`) |
 
-### Start the complete application
+### Start the complete application locally
 
 Build the application image and start both the API and PostgreSQL:
 
@@ -209,6 +136,86 @@ docker compose down -v
 Protected endpoints can be called using the JWT returned by `POST /api/auth/login`.
 
 The generated [OpenAPI document](http://localhost:8080/v3/api-docs) is also available as JSON.
+
+To try protected endpoints locally, use the [local administrator account](#local-administrator).
+
+## Architecture
+
+The codebase is organized by feature around the project, issue, user and authentication domains.
+Security, configuration and error handling are kept in dedicated packages.
+
+The feature packages separate HTTP handling, business logic and persistence.
+The API uses dedicated request and response DTOs rather than exposing JPA entities directly.
+
+## Issue workflow
+
+New issues are automatically created with the `OPEN` status.
+
+The following status transitions are allowed:
+
+```text
+OPEN        -> IN_PROGRESS
+IN_PROGRESS -> RESOLVED
+IN_PROGRESS -> CLOSED
+RESOLVED    -> IN_PROGRESS
+RESOLVED    -> CLOSED
+CLOSED      -> OPEN
+```
+
+Invalid status transitions are rejected with an HTTP `409 Conflict` response.
+To model a simple issue workflow, closed issues must be reopened before their title, description or priority can be changed.
+
+Issues use one of the following priorities:
+
+```text
+LOW
+MEDIUM
+HIGH
+CRITICAL
+```
+
+## Authentication and authorization
+
+The API uses stateless bearer authentication with signed JWTs. Access tokens expire after 15 minutes.
+
+Public registration always creates an enabled user with the `USER` role.
+Clients cannot select or change their own role.
+
+> [!NOTE]
+> Disabling a user blocks future logins but does not revoke existing access tokens.
+> They remain valid for up to 15 minutes.
+
+### Local administrator
+
+For local development, Flyway seeds the following administrator:
+
+Username: `admin` <br>
+Password: `testpassword1234`
+
+## Testing
+
+The service layer is covered by unit tests using JUnit and Mockito.
+Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
+Integration tests run against PostgreSQL using Testcontainers, with Flyway managing the test schema.
+
+GitHub Actions runs `./mvnw verify` on pushes to `main` and pull requests targeting `main`.
+
+### Prerequisites
+
+* Java 21
+* Docker (required for integration tests)
+
+Run unit and controller tests:
+
+```bash
+./mvnw test
+```
+
+Run the complete test suite:
+
+```bash
+./mvnw verify
+```
 
 ## API endpoints
 
