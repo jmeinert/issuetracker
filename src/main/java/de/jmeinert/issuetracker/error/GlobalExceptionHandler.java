@@ -7,6 +7,7 @@ import de.jmeinert.issuetracker.issue.InvalidSortFieldException;
 import de.jmeinert.issuetracker.issue.IssueNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectNotFoundException;
 import de.jmeinert.issuetracker.project.ProjectHasIssuesException;
+import de.jmeinert.issuetracker.user.SelfDeactivationNotAllowedException;
 import de.jmeinert.issuetracker.user.UserDisabledException;
 import de.jmeinert.issuetracker.user.UserNotFoundException;
 
@@ -48,7 +49,8 @@ public class GlobalExceptionHandler {
         ClosedIssueUpdateException.class,
         InvalidIssueStatusTransitionException.class,
         UserAlreadyExistsException.class,
-        UserDisabledException.class
+        UserDisabledException.class,
+        SelfDeactivationNotAllowedException.class
     })
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(RuntimeException e) {

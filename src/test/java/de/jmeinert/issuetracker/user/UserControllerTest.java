@@ -80,4 +80,22 @@ class UserControllerTest extends BaseSecurityWebMvcTest {
 
         verifyNoInteractions(userService);
     }
+
+    @Test
+    void changeUserEnabled_returns409_whenUserTriesToDisableTheirOwnAccount() throws Exception {
+        Long userId = 1L;
+
+        when(userService.changeEnabled(userId, false))
+            .thenThrow(new SelfDeactivationNotAllowedException());
+
+        mockMvc.perform(patch("/api/users/{userId}/enabled", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "enabled": false
+                }
+                """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value("Disabling your own account is not allowed"));
+    }
 }
