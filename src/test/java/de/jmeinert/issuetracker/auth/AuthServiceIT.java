@@ -2,6 +2,7 @@ package de.jmeinert.issuetracker.auth;
 
 import de.jmeinert.issuetracker.config.PersistenceConfig;
 import de.jmeinert.issuetracker.config.TestcontainersConfiguration;
+import de.jmeinert.issuetracker.security.AuthenticatedUserProvider;
 import de.jmeinert.issuetracker.user.UserRepository;
 import de.jmeinert.issuetracker.user.UserService;
 
@@ -32,6 +33,9 @@ import static org.mockito.Mockito.when;
     UserService.class
 })
 class AuthServiceIT {
+
+    @MockitoBean
+    private AuthenticatedUserProvider authenticatedUserProvider;
 
     @MockitoSpyBean
     private UserService userService;

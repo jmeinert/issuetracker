@@ -1,5 +1,6 @@
 package de.jmeinert.issuetracker.user;
 
+import de.jmeinert.issuetracker.security.AuthenticatedUserProvider;
 import de.jmeinert.issuetracker.security.IsAdmin;
 
 import org.springframework.stereotype.Service;
@@ -13,8 +14,14 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+
+    public UserService(
+        UserRepository userRepository,
+        AuthenticatedUserProvider authenticatedUserProvider
+    ) {
         this.userRepository = userRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
     public User findById(Long userId) {
@@ -46,6 +53,10 @@ public class UserService {
     @Transactional
     @IsAdmin
     public User changeEnabled(Long userId, boolean enabled) {
+        if (!enabled && authenticatedUserProvider.getUserId().equals(userId)) {
+            throw new SelfDeactivationNotAllowedException();
+        }
+
         User user = findById(userId);
 
         user.changeEnabledTo(enabled);

@@ -1,5 +1,6 @@
 package de.jmeinert.issuetracker.user;
 
+import de.jmeinert.issuetracker.openapi.ConflictResponse;
 import de.jmeinert.issuetracker.openapi.NotFoundResponse;
 import de.jmeinert.issuetracker.openapi.OkResponse;
 import de.jmeinert.issuetracker.openapi.OpenApiConfig;
@@ -31,6 +32,7 @@ public class UserController {
     @OkResponse(description = "User enabled status updated")
     @NotFoundResponse(description = "User not found")
     @BadRequestResponse
+    @ConflictResponse(description = "Self-deactivation is not allowed")
     @RestrictedEndpointResponses
     public UserResponse changeUserEnabled(
         @Valid @RequestBody ChangeUserEnabledRequest request,
