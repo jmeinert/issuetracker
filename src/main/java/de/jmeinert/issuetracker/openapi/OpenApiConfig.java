@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
     info = @Info(
         title = "Issue Tracker API",
         description = "REST API for managing projects and tracking issues.",
-        version = "0.0.1"
+        version = "1.0.0"
     )
 )
 @SecurityScheme(
