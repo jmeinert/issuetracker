@@ -15,7 +15,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -30,12 +29,12 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -195,12 +194,10 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     @WithAnonymousUser
-    void getIssues_returns401_whenTokenIsInvalid() throws Exception {
-        mockMvc.perform(get("/api/issues")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
+    void getIssues_returns401_whenUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/issues"))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.message").value("Authentication required"))
-            .andExpect(header().exists(HttpHeaders.WWW_AUTHENTICATE));
+            .andExpect(jsonPath("$.message").value("Authentication required"));
 
         verifyNoInteractions(issueService);
     }
@@ -310,14 +307,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenReturn(issue);
 
         mockMvc.perform(post("/api/projects/{projectId}/issues", projectId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "%s",
-                    "description": "%s",
-                    "priority": "%s"
-                }
-                """.formatted(title, description, priority)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "%s",
+                        "description": "%s",
+                        "priority": "%s"
+                    }
+                    """.formatted(title, description, priority)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.title").value(title))
             .andExpect(jsonPath("$.description").value(description))
@@ -336,14 +334,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new ProjectNotFoundException(projectId));
 
         mockMvc.perform(post("/api/projects/{projectId}/issues", projectId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Project not found with id: " + projectId));
     }
@@ -351,14 +350,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void createIssue_returns400_whenTitleIsEmpty() throws Exception {
         mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.title").value("must not be blank"));
@@ -371,14 +371,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         String titleTooLong = "a".repeat(151);
 
         mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "%s",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """.formatted(titleTooLong)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "%s",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """.formatted(titleTooLong)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.title").value("size must be between 0 and 150"));
@@ -391,14 +392,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         String descriptionTooLong = "a".repeat(1001);
 
         mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "%s",
-                    "priority": "LOW"
-                }
-                """.formatted(descriptionTooLong)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "%s",
+                        "priority": "LOW"
+                    }
+                    """.formatted(descriptionTooLong)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.description").value("size must be between 0 and 1000"));
@@ -409,13 +411,14 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void createIssue_returns400_whenPriorityIsMissing() throws Exception {
         mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.priority").value("must not be null"));
@@ -426,14 +429,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void createIssue_returns400_whenPriorityIsInvalid() throws Exception {
         mockMvc.perform(post("/api/projects/1/issues")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "EXTRAHIGH"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription",
+                        "priority": "EXTRAHIGH"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Invalid request body"));
 
@@ -462,14 +466,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenReturn(issue);
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "%s",
-                    "description": "%s",
-                    "priority": "%s"
-                }
-                """.formatted(title, description, priority)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "%s",
+                        "description": "%s",
+                        "priority": "%s"
+                    }
+                    """.formatted(title, description, priority)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value(title))
             .andExpect(jsonPath("$.description").value(description))
@@ -492,14 +497,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }
@@ -507,14 +513,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void updateIssue_returns400_whenTitleIsEmpty() throws Exception {
         mockMvc.perform(put("/api/issues/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.title").value("must not be blank"));
@@ -527,14 +534,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         String titleTooLong = "a".repeat(151);
 
         mockMvc.perform(put("/api/issues/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "%s",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """.formatted(titleTooLong)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "%s",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """.formatted(titleTooLong)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.title").value("size must be between 0 and 150"));
@@ -547,14 +555,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         String descriptionTooLong = "a".repeat(1001);
 
         mockMvc.perform(put("/api/issues/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "%s",
-                    "priority": "LOW"
-                }
-                """.formatted(descriptionTooLong)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "%s",
+                        "priority": "LOW"
+                    }
+                    """.formatted(descriptionTooLong)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.description").value("size must be between 0 and 1000"));
@@ -565,13 +574,14 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void updateIssue_returns400_whenPriorityIsMissing() throws Exception {
         mockMvc.perform(put("/api/issues/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.priority").value("must not be null"));
@@ -582,14 +592,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void updateIssue_returns400_whenPriorityIsInvalid() throws Exception {
         mockMvc.perform(put("/api/issues/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "EXTRAHIGH"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription",
+                        "priority": "EXTRAHIGH"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Invalid request body"));
 
@@ -610,14 +621,15 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new ClosedIssueUpdateException(issueId));
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message")
                 .value("Issue with id " + issueId + " is closed and cannot be updated."));
@@ -641,12 +653,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenReturn(issue);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "IN_PROGRESS"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "IN_PROGRESS"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value(status.name()));
 
@@ -661,12 +674,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "IN_PROGRESS"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "IN_PROGRESS"
+                    }
+                    """))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }
@@ -689,12 +703,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(exception);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "OPEN"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "OPEN"
+                    }
+                    """))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message").value(exception.getMessage()));
 
@@ -704,10 +719,11 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void changeIssueStatus_returns400_whenStatusIsMissing() throws Exception {
         mockMvc.perform(patch("/api/issues/1/status")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {}
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {}
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.status").value("must not be null"));
@@ -718,12 +734,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void changeIssueStatus_returns400_whenStatusIsInvalid() throws Exception {
         mockMvc.perform(patch("/api/issues/1/status")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "WAITING"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "WAITING"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Invalid request body"));
 
@@ -749,12 +766,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenReturn(issue);
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assigneeId)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assigneeId)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.assigneeId").value(assigneeId));
     }
@@ -762,10 +780,11 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void assignIssue_returns400_whenAssigneeIdIsMissing() throws Exception {
         mockMvc.perform(patch("/api/issues/1/assignee")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {}
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {}
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.assigneeId").value("must not be null"));
@@ -782,12 +801,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new IssueNotFoundException(issueId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assigneeId)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assigneeId)))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }
@@ -801,12 +821,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new UserNotFoundException(assigneeId));
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assigneeId)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assigneeId)))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("User not found with id: " + assigneeId));
     }
@@ -820,12 +841,13 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new UserDisabledException());
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assigneeId)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assigneeId)))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message").value("User is disabled"));
     }
@@ -839,7 +861,8 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         when(issueService.unassign(issueId))
             .thenReturn(issue);
 
-        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId))
+        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId)
+                .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.assigneeId").isEmpty());
     }
@@ -851,7 +874,8 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
         when(issueService.unassign(issueId))
             .thenThrow(new IssueNotFoundException(issueId));
 
-        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId))
+        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId)
+                .with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }
@@ -860,7 +884,8 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     void deleteIssue_returns204_whenIssueExists() throws Exception {
         Long issueId = 1L;
 
-        mockMvc.perform(delete("/api/issues/{issueId}", issueId))
+        mockMvc.perform(delete("/api/issues/{issueId}", issueId)
+                .with(csrf()))
             .andExpect(status().isNoContent());
 
         verify(issueService).delete(issueId);
@@ -874,7 +899,8 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
             .when(issueService)
             .delete(issueId);
 
-        mockMvc.perform(delete("/api/issues/{issueId}", issueId))
+        mockMvc.perform(delete("/api/issues/{issueId}", issueId)
+                .with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Issue not found with id: " + issueId));
     }

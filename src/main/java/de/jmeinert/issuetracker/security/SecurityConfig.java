@@ -1,18 +1,16 @@
 package de.jmeinert.issuetracker.security;
 
-import de.jmeinert.issuetracker.auth.TokenService;
 import de.jmeinert.issuetracker.error.SecurityExceptionHandler;
 
 import com.password4j.Argon2Function;
 import com.password4j.types.Argon2;
 import jakarta.servlet.DispatcherType;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -21,19 +19,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password4j.Argon2Password4jPasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Base64;
 import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
@@ -43,7 +30,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/register",
-        "/api/auth/login",
+        "/api/auth/csrf",
         "/scalar/**",
         "/v3/api-docs/**"
     };
@@ -54,19 +41,31 @@ public class SecurityConfig {
         SecurityExceptionHandler securityExceptionHandler
     ) {
         return http
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.spa())
             .sessionManagement(
-                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
             )
+            .requestCache(cache -> cache.disable())
             .authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()
             )
-            .oauth2ResourceServer(oauth2 -> oauth2
+            .formLogin(formLogin -> formLogin
+                .loginProcessingUrl("/api/auth/login")
+                .successHandler((request, response, authentication) -> response.setStatus(HttpStatus.NO_CONTENT.value()))
+                .failureHandler(securityExceptionHandler)
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/api/auth/logout")
+                .logoutSuccessHandler((request, response, authentication) -> response.setStatus(HttpStatus.NO_CONTENT.value()))
+                .deleteCookies("JSESSIONID")
+                .permitAll()
+            )
+            .exceptionHandling(exceptionHandling -> exceptionHandling
                 .authenticationEntryPoint(securityExceptionHandler)
                 .accessDeniedHandler(securityExceptionHandler)
-                .jwt(Customizer.withDefaults())
             )
             .build();
     }
@@ -80,48 +79,6 @@ public class SecurityConfig {
         authenticationProvider.setPasswordEncoder(passwordEncoder);
 
         return new ProviderManager(authenticationProvider);
-    }
-
-    @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
-        var jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName(TokenService.ROLES_CLAIM);
-        jwtGrantedAuthoritiesConverter.setAuthorityPrefix(UserPrincipal.ROLE_PREFIX);
-
-        var jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
-
-        return jwtAuthenticationConverter;
-    }
-
-    @Bean
-    JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
-        return NimbusJwtEncoder.withSecretKey(jwtSecretKey)
-            .algorithm(MacAlgorithm.HS256)
-            .build();
-    }
-
-    @Bean
-    JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
-        var jwtDecoder = NimbusJwtDecoder.withSecretKey(jwtSecretKey)
-            .macAlgorithm(MacAlgorithm.HS256)
-            .build();
-        jwtDecoder.setJwtValidator(
-            JwtValidators.createDefaultWithIssuer(TokenService.TOKEN_ISSUER)
-        );
-
-        return jwtDecoder;
-    }
-
-    @Bean
-    SecretKey jwtSecretKey(@Value("${jwt.secret}") String encodedSecret) {
-        byte[] keyBytes = Base64.getDecoder().decode(encodedSecret);
-
-        if (keyBytes.length < 32) {
-            throw new IllegalStateException("JWT secret must contain at least 32 bytes");
-        }
-
-        return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 
     @Bean

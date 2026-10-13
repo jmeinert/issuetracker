@@ -14,8 +14,6 @@ import java.util.List;
 @NullMarked
 public class UserPrincipal implements UserDetails {
 
-    public static final String ROLE_PREFIX = "ROLE_";
-
     private final User user;
 
     public UserPrincipal(User user) {
@@ -29,7 +27,7 @@ public class UserPrincipal implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(
-            new SimpleGrantedAuthority(ROLE_PREFIX + user.getRole().name())
+            new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
         );
     }
 

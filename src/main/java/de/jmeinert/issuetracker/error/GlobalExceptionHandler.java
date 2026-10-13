@@ -14,8 +14,6 @@ import de.jmeinert.issuetracker.user.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.authentication.AccountStatusException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -108,15 +106,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleHttpMessageNotReadableException() {
         return new ErrorResponse("Invalid request body");
-    }
-
-    @ExceptionHandler({
-        BadCredentialsException.class,
-        AccountStatusException.class
-    })
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorResponse handleLoginExceptions() {
-        return new ErrorResponse("Invalid username or password");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

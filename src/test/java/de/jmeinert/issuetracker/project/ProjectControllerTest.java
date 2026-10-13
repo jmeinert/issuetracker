@@ -4,7 +4,6 @@ import de.jmeinert.issuetracker.BaseSecurityWebMvcTest;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -16,11 +15,11 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,11 +47,10 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     @WithAnonymousUser
-    void getAll_returns401_whenTokenIsMissing() throws Exception {
+    void getAll_returns401_whenUnauthenticated() throws Exception {
         mockMvc.perform(get("/api/projects"))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.message").value("Authentication required"))
-            .andExpect(header().exists(HttpHeaders.WWW_AUTHENTICATE));
+            .andExpect(jsonPath("$.message").value("Authentication required"));
 
         verifyNoInteractions(projectService);
     }
@@ -89,13 +87,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
             .thenReturn(new Project(name, description));
 
         mockMvc.perform(post("/api/projects")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "%s",
-                    "description": "%s"
-                }
-                """.formatted(name, description)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "%s",
+                        "description": "%s"
+                    }
+                    """.formatted(name, description)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.name").value(name))
             .andExpect(jsonPath("$.description").value(description));
@@ -104,13 +103,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void createProject_returns400_whenNameIsBlank() throws Exception {
         mockMvc.perform(post("/api/projects")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "",
-                    "description": "TestDescription"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "",
+                        "description": "TestDescription"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.name").value("must not be blank"));
@@ -123,13 +123,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
         String tooLongName = "a".repeat(151);
 
         mockMvc.perform(post("/api/projects")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "%s",
-                    "description": "TestDescription"
-                }
-                """.formatted(tooLongName)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "%s",
+                        "description": "TestDescription"
+                    }
+                    """.formatted(tooLongName)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.name").value("size must be between 0 and 150"));
@@ -142,13 +143,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
         String tooLongDescription = "a".repeat(1001);
 
         mockMvc.perform(post("/api/projects")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "TestName",
-                    "description": "%s"
-                }
-                """.formatted(tooLongDescription)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "TestName",
+                        "description": "%s"
+                    }
+                    """.formatted(tooLongDescription)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.description").value("size must be between 0 and 1000"));
@@ -167,13 +169,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
             .thenReturn(new Project(name, description));
 
         mockMvc.perform(put("/api/projects/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "%s",
-                    "description": "%s"
-                }
-                """.formatted(name, description)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "%s",
+                        "description": "%s"
+                    }
+                    """.formatted(name, description)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name").value(name))
             .andExpect(jsonPath("$.description").value(description));
@@ -190,13 +193,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
             .thenThrow(new ProjectNotFoundException(5L));
 
         mockMvc.perform(put("/api/projects/5")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "%s",
-                    "description": "%s"
-                }
-                """.formatted(name, description)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "%s",
+                        "description": "%s"
+                    }
+                    """.formatted(name, description)))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Project not found with id: 5"));
     }
@@ -204,13 +208,14 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
     @Test
     void updateProject_returns400_whenNameIsBlank() throws Exception {
         mockMvc.perform(put("/api/projects/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "",
-                    "description": "UpdatedTestDescription"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "",
+                        "description": "UpdatedTestDescription"
+                    }
+                    """))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.name").value("must not be blank"));
@@ -220,7 +225,8 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     void deleteProject_returns204_whenProjectExists() throws Exception {
-        mockMvc.perform(delete("/api/projects/1"))
+        mockMvc.perform(delete("/api/projects/1")
+                .with(csrf()))
             .andExpect(status().isNoContent());
 
         verify(projectService).delete(1L);
@@ -232,7 +238,8 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
             .when(projectService)
             .delete(5L);
 
-        mockMvc.perform(delete("/api/projects/5"))
+        mockMvc.perform(delete("/api/projects/5")
+                .with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Project not found with id: 5"));
     }
@@ -243,7 +250,8 @@ class ProjectControllerTest extends BaseSecurityWebMvcTest {
             .when(projectService)
             .delete(1L);
 
-        mockMvc.perform(delete("/api/projects/1"))
+        mockMvc.perform(delete("/api/projects/1")
+                .with(csrf()))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message")
                 .value("Project with id 1 cannot be deleted because it still contains issues."));

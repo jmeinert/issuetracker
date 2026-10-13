@@ -12,7 +12,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -140,64 +140,13 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
         verifyNoInteractions(authService);
     }
 
-    @Test
-    void login_returns200_whenRequestIsValid() throws Exception {
-        String username = "testuser";
-        String password = "TestPassword1234";
-        String token = "token";
-
-        LoginRequest request = new LoginRequest(username, password);
-
-        when(authService.login(request))
-            .thenReturn(token);
-
-        login(username, password)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.token").value(token));
-    }
-
-    @Test
-    void login_returns400_whenUsernameIsBlank() throws Exception {
-        login("", "TestPassword1234")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.username").value("must not be blank"));
-    }
-
-    @Test
-    void login_returns400_whenUsernameIsTooLong() throws Exception {
-        String tooLongUsername = "a".repeat(51);
-
-        login(tooLongUsername, "TestPassword1234")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.username").value("size must be between 0 and 50"));
-    }
-
-    @Test
-    void login_returns400_whenPasswordIsBlank() throws Exception {
-        login("testuser", "")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.password").value("must not be blank"));
-    }
-
-    @Test
-    void login_returns400_whenPasswordIsTooLong() throws Exception {
-        String tooLongPassword = "a".repeat(129);
-
-        login("testuser", tooLongPassword)
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.password").value("size must be between 0 and 128"));
-    }
-
     private ResultActions register(
         String username,
         String email,
         String password
     ) throws Exception {
         return mockMvc.perform(post("/api/auth/register")
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
@@ -206,19 +155,5 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
                     "password": "%s"
                 }
                 """.formatted(username, email, password)));
-    }
-
-    private ResultActions login(
-        String username,
-        String password
-    ) throws Exception {
-        return mockMvc.perform(post("/api/auth/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "username": "%s",
-                    "password": "%s"
-                }
-                """.formatted(username, password)));
     }
 }

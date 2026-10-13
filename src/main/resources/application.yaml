@@ -10,9 +10,13 @@ spring:
       pageable:
         max-page-size: 100
 
-jwt:
-  secret: ${JWT_SECRET}
-
 springdoc:
   default-produces-media-type: application/json
   override-with-generic-response: false
+
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax

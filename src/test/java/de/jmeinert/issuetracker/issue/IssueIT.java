@@ -17,8 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -30,6 +30,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -85,23 +86,24 @@ class IssueIT {
             .build();
         userRepository.saveAndFlush(reporter);
 
-        auth = new AuthTestHelper(mockMvc, jsonMapper);
+        auth = new AuthTestHelper(mockMvc);
     }
 
     @Test
     void create_persistsIssueWithAuthenticatedUserAsReporter() throws Exception {
-        String token = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter", "password");
 
         mockMvc.perform(post("/api/projects/{projectId}/issues", project.getId())
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.reporterId").value(reporter.getId()));
 
@@ -149,12 +151,13 @@ class IssueIT {
 
         // Assign issue
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assignee1.getId())))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assignee1.getId())))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.assigneeId").value(assignee1.getId()));
 
@@ -165,12 +168,13 @@ class IssueIT {
 
         // Reassign issue
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assignee2.getId())))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assignee2.getId())))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.assigneeId").value(assignee2.getId()));
 
@@ -180,7 +184,8 @@ class IssueIT {
         assertEquals(assignee2.getId(), persistedIssue.getAssignee().getId());
 
         // Unassign issue
-        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId))
+        mockMvc.perform(delete("/api/issues/{issueId}/assignee", issueId)
+                .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.assigneeId").isEmpty());
 
@@ -197,14 +202,15 @@ class IssueIT {
         issueRepository.saveAndFlush(issue);
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
             .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
@@ -216,18 +222,19 @@ class IssueIT {
         Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
-        String token = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
             .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
@@ -250,18 +257,19 @@ class IssueIT {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        String token = auth.login("assignee", "password");
+        MockHttpSession session = auth.login("assignee", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("UpdatedTestTitle"))
             .andExpect(jsonPath("$.description").value("UpdatedTestDescription"))
@@ -287,18 +295,19 @@ class IssueIT {
 
         Long issueId = issue.getId();
 
-        String token = auth.login("user", "password");
+        MockHttpSession session = auth.login("user", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message").value("Access denied"));
 
@@ -319,12 +328,13 @@ class IssueIT {
         issueRepository.saveAndFlush(issue);
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "IN_PROGRESS"
-                }
-                """))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "IN_PROGRESS"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
     }
@@ -334,16 +344,17 @@ class IssueIT {
         Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
-        String token = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "IN_PROGRESS"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "IN_PROGRESS"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
     }
@@ -364,16 +375,17 @@ class IssueIT {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        String token = auth.login("assignee", "password");
+        MockHttpSession session = auth.login("assignee", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "IN_PROGRESS"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "IN_PROGRESS"
+                    }
+                    """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
     }
@@ -395,16 +407,17 @@ class IssueIT {
 
         Long issueId = issue.getId();
 
-        String token = auth.login("user", "password");
+        MockHttpSession session = auth.login("user", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "IN_PROGRESS"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "IN_PROGRESS"
+                    }
+                    """))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message").value("Access denied"));
 
@@ -423,16 +436,17 @@ class IssueIT {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        String token = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "status": "CLOSED"
-                }
-                """))
+                .with(csrf())
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "status": "CLOSED"
+                    }
+                    """))
             .andExpect(status().isConflict());
 
         entityManager.flush();
@@ -459,17 +473,18 @@ class IssueIT {
             .build();
         userRepository.saveAllAndFlush(List.of(admin, assignee));
 
-        String adminToken = auth.login("admin", "password");
+        MockHttpSession adminSession = auth.login("admin", "password");
 
         String projectResponse = mockMvc.perform(post("/api/projects")
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "name": "TestName",
-                    "description": "TestDescription"
-                }
-                """))
+                .with(csrf())
+                .session(adminSession)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "TestName",
+                        "description": "TestDescription"
+                    }
+                    """))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
@@ -478,15 +493,16 @@ class IssueIT {
         Long projectId = jsonMapper.readValue(projectResponse, ProjectResponse.class).id();
 
         String issueResponse = mockMvc.perform(post("/api/projects/{projectId}/issues", projectId)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "TestTitle",
-                    "description": "TestDescription",
-                    "priority": "LOW"
-                }
-                """))
+                .with(csrf())
+                .session(adminSession)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "TestTitle",
+                        "description": "TestDescription",
+                        "priority": "LOW"
+                    }
+                    """))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
@@ -495,27 +511,29 @@ class IssueIT {
         Long issueId = jsonMapper.readValue(issueResponse, IssueResponse.class).id();
 
         mockMvc.perform(patch("/api/issues/{issueId}/assignee", issueId)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "assigneeId": %d
-                }
-                """.formatted(assignee.getId())))
+                .with(csrf())
+                .session(adminSession)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "assigneeId": %d
+                    }
+                    """.formatted(assignee.getId())))
             .andExpect(status().isOk());
 
-        String assigneeToken = auth.login("assignee", "password");
+        MockHttpSession assigneeSession = auth.login("assignee", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + assigneeToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "UpdatedTestTitle",
-                    "description": "UpdatedTestDescription",
-                    "priority": "MEDIUM"
-                }
-                """))
+                .with(csrf())
+                .session(assigneeSession)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "UpdatedTestTitle",
+                        "description": "UpdatedTestDescription",
+                        "priority": "MEDIUM"
+                    }
+                    """))
             .andExpect(status().isOk());
 
         entityManager.flush();

@@ -8,7 +8,7 @@ I built this project to deepen my practical knowledge of Java and the Spring Boo
 of professional web development with PHP and TYPO3.
 
 My goal was to go beyond a minimal CRUD demo by adding realistic workflow rules, PostgreSQL persistence,
-JWT-based authentication, role-based authorization and automated integration tests.
+session-based authentication, role-based authorization and automated integration tests.
 
 ## Features
 
@@ -22,7 +22,7 @@ JWT-based authentication, role-based authorization and automated integration tes
 ### Users and security
 
 * Register users and store passwords as Argon2id hashes
-* Issue short-lived JWTs for valid credentials
+* Provide login and logout endpoints via sessions
 * Associate issues with their reporter and optional assignee
 * Restrict operations based on roles and issue ownership
 * Enable or disable users through an administrator endpoint
@@ -43,7 +43,7 @@ JWT-based authentication, role-based authorization and automated integration tes
 * Java 21
 * Spring Boot 4.1
 * Spring Web MVC and Spring Data JPA
-* Spring Security and OAuth2 Resource Server
+* Spring Security
 * Hibernate
 * PostgreSQL 18
 * Flyway
@@ -70,14 +70,6 @@ cp .env.example .env
 
 ### Configure environment
 
-Generate a Base64-encoded JWT signing secret containing at least 32 bytes:
-
-```bash
-openssl rand -base64 32
-```
-
-Store the generated value as `JWT_SECRET` in the `.env` file.
-
 The environment file configures the following values:
 
 | Variable            | Required | Description                                   |
@@ -85,7 +77,6 @@ The environment file configures the following values:
 | `POSTGRES_DB`       | Yes      | Name of the PostgreSQL database               |
 | `POSTGRES_USER`     | Yes      | PostgreSQL user used by the application       |
 | `POSTGRES_PASSWORD` | Yes      | Password for the PostgreSQL user              |
-| `JWT_SECRET`        | Yes      | Base64-encoded JWT signing secret             |
 | `APPLICATION_PORT`  | No       | Host port for the API (defaults to `8080`)    |
 | `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`) |
 
@@ -133,11 +124,13 @@ docker compose down -v
 ## API documentation
 
 [Scalar](http://localhost:8080/scalar) documents all endpoints, schemas and responses.
-Protected endpoints can be called using the JWT returned by `POST /api/auth/login`.
 
 The generated [OpenAPI document](http://localhost:8080/v3/api-docs) is also available as JSON.
 
-To try protected endpoints locally, use the [local administrator account](#local-administrator).
+Protected endpoints can be called after creating a session with `POST /api/auth/login`.
+Use the credentials of the [local administrator account](#local-administrator).
+Endpoints with unsafe HTTP methods, such as POST, additionally require both the `XSRF-TOKEN` cookie
+and its value in the `X-XSRF-TOKEN` header.
 
 ## Architecture
 
@@ -176,14 +169,13 @@ CRITICAL
 
 ## Authentication and authorization
 
-The API uses stateless bearer authentication with signed JWTs. Access tokens expire after 15 minutes.
+The API uses session authentication with login and logout endpoints.
 
 Public registration always creates an enabled user with the `USER` role.
 Clients cannot select or change their own role.
 
 > [!NOTE]
-> Disabling a user blocks future logins but does not revoke existing access tokens.
-> They remain valid for up to 15 minutes.
+> Disabling a user blocks future logins but does not automatically invalidate existing sessions.
 
 ### Local administrator
 
@@ -198,7 +190,7 @@ The service layer is covered by unit tests using JUnit and Mockito.
 Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
 Integration tests run against PostgreSQL using Testcontainers, with Flyway managing the test schema.
 
-GitHub Actions runs `./mvnw verify` on pushes to `main` and pull requests targeting `main`.
+GitHub Actions runs `./mvnw verify` on all pull requests and pushes to `main` or major version branches such as `v2`.
 
 ### Prerequisites
 
@@ -223,8 +215,10 @@ Run the complete test suite:
 
 | Method | Endpoint             | Access | Description     |
 |--------|----------------------|--------|-----------------|
+| `GET`  | `/api/auth/csrf`     | Public | Get CSRF token  |
 | `POST` | `/api/auth/register` | Public | Register a user |
-| `POST` | `/api/auth/login`    | Public | Obtain a JWT    |
+| `POST` | `/api/auth/login`    | Public | Log in          |
+| `POST` | `/api/auth/logout`   | Public | Log out         |
 
 ### Users
 
@@ -255,65 +249,3 @@ Run the complete test suite:
 | `PATCH`  | `/api/issues/{issueId}/assignee`   | Admin                     | Assign or reassign an issue                                      |
 | `DELETE` | `/api/issues/{issueId}/assignee`   | Admin                     | Remove the current assignee                                      |
 | `DELETE` | `/api/issues/{issueId}`            | Admin                     | Delete an issue                                                  |
-
-## Example requests
-
-The examples assume a freshly initialized local database.
-The seeded local administrator is used for admin-only operations.
-
-### Register a regular user
-
-```bash
-curl -i -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "testpassword1234"
-  }'
-```
-
-### Log in as the local administrator
-
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "testpassword1234"
-  }'
-```
-
-Example response:
-
-```json
-{
-  "token": "<signed-jwt>"
-}
-```
-
-Use the returned token for every protected request.
-
-### Create a project
-
-```bash
-curl -X POST http://localhost:8080/api/projects \
-  -H "Authorization: Bearer <signed-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Customer Portal",
-    "description": "Improvements to the customer self-service portal"
-  }'
-```
-
-Example response:
-
-```json
-{
-  "id": 1,
-  "name": "Customer Portal",
-  "description": "Improvements to the customer self-service portal",
-  "createdAt": "2026-07-27T12:00:00Z",
-  "updatedAt": "2026-07-27T12:00:00Z"
-}
-```
