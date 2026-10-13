@@ -1,8 +1,0 @@
-### Change enabled status of user
-PATCH http://localhost:8080/api/users/2/enabled
-Authorization: Bearer {{auth_token}}
-Content-Type: application/json
-
-{
-  "enabled": false
-}

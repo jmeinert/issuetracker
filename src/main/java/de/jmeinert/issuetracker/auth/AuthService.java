@@ -5,9 +5,6 @@ import de.jmeinert.issuetracker.user.UserService;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,20 +19,9 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
 
-    private final AuthenticationManager authenticationManager;
-
-    private final TokenService tokenService;
-
-    public AuthService(
-        UserService userService,
-        PasswordEncoder passwordEncoder,
-        AuthenticationManager authenticationManager,
-        TokenService tokenService
-    ) {
+    public AuthService(UserService userService, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.tokenService = tokenService;
     }
 
     public void register(RegisterRequest request) {
@@ -58,17 +44,6 @@ public class AuthService {
 
             throw exception;
         }
-    }
-
-    public String login(LoginRequest request) {
-        var authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
-            request.username(),
-            request.password()
-        );
-
-        Authentication authentication = authenticationManager.authenticate(authenticationRequest);
-
-        return tokenService.generateToken(authentication);
     }
 
     private boolean isDuplicateUserConstraint(DataIntegrityViolationException exception) {

@@ -14,10 +14,10 @@ public class AuthenticatedUserProvider {
             throw new IllegalStateException("No authenticated user");
         }
 
-        try {
-            return Long.valueOf(authentication.getName());
-        } catch (NumberFormatException exception) {
-            throw new IllegalStateException("Authenticated user ID is invalid", exception);
+        if (!(authentication.getPrincipal() instanceof UserPrincipal userPrincipal)) {
+            throw new IllegalStateException("Principal is not of type UserPrincipal");
         }
+
+        return userPrincipal.getId();
     }
 }

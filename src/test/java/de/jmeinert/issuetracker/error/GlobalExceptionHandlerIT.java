@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -28,7 +29,7 @@ class GlobalExceptionHandlerIT {
 
     @Test
     void httpRequestMethodNotSupportedExceptionIsHandled() throws Exception {
-        mockMvc.perform(get("/api/auth/login"))
+        mockMvc.perform(get("/api/auth/register"))
             .andExpect(status().isMethodNotAllowed())
             .andExpect(header().string("Allow", "POST"))
             .andExpect(jsonPath("$.message").value("Method Not Allowed"));
@@ -36,8 +37,9 @@ class GlobalExceptionHandlerIT {
 
     @Test
     void httpMediaTypeNotSupportedExceptionIsHandled() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
-            .contentType(MediaType.TEXT_PLAIN))
+        mockMvc.perform(post("/api/auth/register")
+                .with(csrf())
+                .contentType(MediaType.TEXT_PLAIN))
             .andExpect(status().isUnsupportedMediaType())
             .andExpect(jsonPath("$.message").value("Unsupported Media Type"));
     }

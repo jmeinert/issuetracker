@@ -29,7 +29,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
-@SecurityRequirement(name = OpenApiConfig.JWT_BEARER_SECURITY_SCHEME)
+@SecurityRequirement(name = OpenApiConfig.COOKIE_AUTH_SECURITY_SCHEME)
 @Tag(name = "Projects")
 public class ProjectController {
 

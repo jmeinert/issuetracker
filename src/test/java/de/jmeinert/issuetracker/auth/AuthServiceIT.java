@@ -12,7 +12,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -42,12 +41,6 @@ class AuthServiceIT {
 
     @MockitoBean
     private PasswordEncoder passwordEncoder;
-
-    @MockitoBean
-    private AuthenticationManager authenticationManager;
-
-    @MockitoBean
-    private TokenService tokenService;
 
     @Autowired
     private AuthService authService;

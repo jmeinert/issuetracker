@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@SecurityRequirement(name = OpenApiConfig.JWT_BEARER_SECURITY_SCHEME)
+@SecurityRequirement(name = OpenApiConfig.COOKIE_AUTH_SECURITY_SCHEME)
 @Tag(name = "Issues")
 public class IssueController {
 
