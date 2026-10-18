@@ -72,13 +72,13 @@ cp .env.example .env
 
 The environment file configures the following values:
 
-| Variable            | Required | Description                                   |
-|---------------------|----------|-----------------------------------------------|
-| `POSTGRES_DB`       | Yes      | Name of the PostgreSQL database               |
-| `POSTGRES_USER`     | Yes      | PostgreSQL user used by the application       |
-| `POSTGRES_PASSWORD` | Yes      | Password for the PostgreSQL user              |
-| `APPLICATION_PORT`  | No       | Host port for the API (defaults to `8080`)    |
-| `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`) |
+| Variable            | Required | Description                                    |
+|---------------------|----------|------------------------------------------------|
+| `POSTGRES_DB`       | Yes      | Name of the PostgreSQL database                |
+| `POSTGRES_USER`     | Yes      | PostgreSQL user used by the application        |
+| `POSTGRES_PASSWORD` | Yes      | Password for the PostgreSQL user               |
+| `BACKEND_PORT`      | No       | Host port for the backend (defaults to `8080`) |
+| `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`)  |
 
 ### Start the complete application locally
 
@@ -105,6 +105,7 @@ docker compose up -d postgres
 set -a
 source .env
 set +a
+cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
@@ -190,7 +191,7 @@ The service layer is covered by unit tests using JUnit and Mockito.
 Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
 Integration tests run against PostgreSQL using Testcontainers, with Flyway managing the test schema.
 
-GitHub Actions runs `./mvnw verify` on all pull requests and pushes to `main` or major version branches such as `v2`.
+GitHub Actions runs `./mvnw verify` in the `backend` directory on all pull requests and pushes to `main` or major version branches such as `v2`.
 
 ### Prerequisites
 
@@ -200,12 +201,14 @@ GitHub Actions runs `./mvnw verify` on all pull requests and pushes to `main` or
 Run unit and controller tests:
 
 ```bash
+cd backend
 ./mvnw test
 ```
 
 Run the complete test suite:
 
 ```bash
+cd backend
 ./mvnw verify
 ```
 

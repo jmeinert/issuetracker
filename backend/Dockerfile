@@ -2,12 +2,12 @@ FROM eclipse-temurin:21-jdk-noble AS build
 
 WORKDIR /build
 
-COPY .mvn/ .mvn/
+COPY .mvn .mvn/
 COPY mvnw pom.xml ./
 
 RUN chmod +x mvnw && ./mvnw -B -ntp dependency:go-offline
 
-COPY src/ src/
+COPY src src/
 
 RUN ./mvnw -B -ntp package -DskipTests
 
