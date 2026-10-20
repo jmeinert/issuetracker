@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/jmeinert/issuetracker/actions/workflows/ci.yaml/badge.svg)](https://github.com/jmeinert/issuetracker/actions/workflows/ci.yaml)
 
-Issue Tracker is a REST API for managing projects and tracking their associated issues through a defined workflow.
+Issue Tracker is a fullstack learning project for managing projects and tracking their associated issues through a defined workflow
 
 I built this project to deepen my practical knowledge of Java and the Spring Boot ecosystem after several years
 of professional web development with PHP and TYPO3.
@@ -34,24 +34,31 @@ session-based authentication, role-based authorization and automated integration
 
 ### Build and runtime
 
-* Run the complete application stack with Docker Compose
-* Build the application image from source using a multi-stage Docker build
-* Run Maven verification and build the Docker image with GitHub Actions
+* Run the frontend, backend and PostgreSQL with Docker Compose
+* Serve the frontend and proxy API requests through nginx, with optional local HTTPS
+* Build the backend and frontend images using multi-stage Docker builds
+* Run backend verification, frontend linting and both image builds with GitHub Actions
 
 ## Tech stack
+
+### Backend
 
 * Java 21
 * Spring Boot 4.1
 * Spring Web MVC and Spring Data JPA
 * Spring Security
-* Hibernate
-* PostgreSQL 18
-* Flyway
+* PostgreSQL
+
+### Frontend
+
+* React 19
+* Vite
+* TypeScript
+
+### Infrastructure
+
 * Docker Compose
-* Jakarta Bean Validation
-* Maven
-* JUnit, Mockito and MockMvc
-* Testcontainers
+* nginx
 * GitHub Actions
 
 ## Getting started
@@ -72,27 +79,51 @@ cp .env.example .env
 
 The environment file configures the following values:
 
-| Variable            | Required | Description                                    |
-|---------------------|----------|------------------------------------------------|
-| `POSTGRES_DB`       | Yes      | Name of the PostgreSQL database                |
-| `POSTGRES_USER`     | Yes      | PostgreSQL user used by the application        |
-| `POSTGRES_PASSWORD` | Yes      | Password for the PostgreSQL user               |
-| `BACKEND_PORT`      | No       | Host port for the backend (defaults to `8080`) |
-| `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`)  |
+| Variable            | Required | Description                                              |
+|---------------------|----------|----------------------------------------------------------|
+| `POSTGRES_DB`       | Yes      | Name of the PostgreSQL database                          |
+| `POSTGRES_USER`     | Yes      | PostgreSQL user used by the application                  |
+| `POSTGRES_PASSWORD` | Yes      | Password for the PostgreSQL user                         |
+| `BACKEND_PORT`      | No       | Host port for direct backend access (defaults to `8080`) |
+| `FRONTEND_PORT`     | No       | Host port for nginx (defaults to `80` or `443`)          |
+| `POSTGRES_PORT`     | No       | Host port for PostgreSQL (defaults to `5432`)            |
 
 ### Start the complete application locally
 
-Build the application image and start both the API and PostgreSQL:
+Build the application image and start all services:
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
-By default, the API is available at `http://localhost:8080`.
+Frontend: http://localhost
 
-### Run the application from source
+#### Optional: local HTTPS
 
-Running the application outside Docker additionally requires Java 21.
+For HTTPS, install [mkcert](https://github.com/filosottile/mkcert) and create a locally trusted certificate for `localhost`.
+Save the `.pem` files in the `.certs` directory in the repository root.
+On Linux, grant the nginx container's group (`101`) access to the certificate directory and private key.
+
+```bash
+mkdir -p .certs
+mkcert -install
+mkcert -cert-file .certs/localhost.pem -key-file .certs/localhost-key.pem localhost
+sudo chgrp 101 .certs .certs/localhost-key.pem
+chmod 750 .certs
+chmod 640 .certs/localhost-key.pem
+```
+
+Then, start the HTTPS variant:
+
+```bash
+docker compose -f compose.yaml -f compose.https.yaml up -d --build
+```
+
+Frontend: https://localhost
+
+### Run the backend from source
+
+Running the backend outside Docker additionally requires Java 21.
 Start only PostgreSQL:
 
 ```bash
@@ -135,7 +166,14 @@ and its value in the `X-XSRF-TOKEN` header.
 
 ## Architecture
 
-The codebase is organized by feature around the project, issue, user and authentication domains.
+```text
+backend/           Spring Boot application
+frontend/          React application and nginx configuration
+compose.yaml       Local HTTP stack
+compose.https.yaml Optional HTTPS overrides
+```
+
+The backend is organized by feature around the project, issue, user and authentication domains.
 Security, configuration and error handling are kept in dedicated packages.
 
 The feature packages separate HTTP handling, business logic and persistence.
@@ -191,7 +229,7 @@ The service layer is covered by unit tests using JUnit and Mockito.
 Controller tests use MockMvc to verify request validation, JSON responses, HTTP status codes and business-rule conflicts.
 Integration tests run against PostgreSQL using Testcontainers, with Flyway managing the test schema.
 
-GitHub Actions runs `./mvnw verify` in the `backend` directory on all pull requests and pushes to `main` or major version branches such as `v2`.
+GitHub Actions runs on all pull requests and pushes to main or major version branches such as v2.
 
 ### Prerequisites
 
