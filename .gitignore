@@ -13,3 +13,4 @@ HELP.md
 .env
 .env.*
 !.env.example
+.certs

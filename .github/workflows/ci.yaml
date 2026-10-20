@@ -42,3 +42,39 @@ jobs:
       - name: Build Docker image
         working-directory: backend
         run: docker build -t issuetracker-backend:ci .
+
+  frontend-verify:
+    name: Verify frontend code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint code
+        working-directory: frontend
+        run: npm run lint
+
+  frontend-build:
+    name: Build frontend Docker image
+    needs: frontend-verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build Docker image
+        working-directory: frontend
+        run: docker build -t issuetracker-frontend:ci .
