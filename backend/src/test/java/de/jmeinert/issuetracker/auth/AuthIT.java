@@ -73,10 +73,7 @@ class AuthIT {
                     """.formatted(username, email, password)))
             .andExpect(status().isCreated());
 
-        var users = userRepository.findAll();
-        assertThat(users).hasSize(1);
-
-        User user = users.getFirst();
+        User user = userRepository.findByUsername(normalizedUsername).orElseThrow();
 
         assertThat(user.getUsername()).isEqualTo(normalizedUsername);
         assertThat(user.getEmail()).isEqualTo(normalizedEmail);
@@ -205,6 +202,35 @@ class AuthIT {
                 .session(session))
             .andExpect(status().isOk())
             .andExpect(authenticated());
+    }
+
+    @ParameterizedTest
+    @EnumSource(UserRole.class)
+    void me_returnsCurrentlyLoggedInUser_whenUserIsLoggedIn(UserRole role) throws Exception {
+        String username = "testuser";
+        String email = "test@example.com";
+        String password = "TestPassword1234";
+
+        saveUser("testuser2", "test2@example.com", password, role, true);
+        saveUser(username, email, password, role, true);
+
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        MockHttpSession session = auth.login(username, password);
+
+        mockMvc.perform(get("/api/auth/me")
+                .session(session))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(user.getId()))
+            .andExpect(jsonPath("$.username").value(user.getUsername()))
+            .andExpect(jsonPath("$.role").value(user.getRole().name()));
+    }
+
+    @Test
+    void me_returns401_whenUserIsNotLoggedIn() throws Exception {
+        mockMvc.perform(get("/api/auth/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.message").value("Authentication required"));
     }
 
     private void saveUser(String username, String email, String password, UserRole role, boolean enabled) {

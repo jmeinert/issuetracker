@@ -4,8 +4,13 @@ import de.jmeinert.issuetracker.openapi.BadRequestResponse;
 import de.jmeinert.issuetracker.openapi.ConflictResponse;
 import de.jmeinert.issuetracker.openapi.CreatedResponse;
 import de.jmeinert.issuetracker.openapi.NoContentResponse;
+import de.jmeinert.issuetracker.openapi.OkResponse;
+import de.jmeinert.issuetracker.openapi.OpenApiConfig;
+import de.jmeinert.issuetracker.openapi.UnauthorizedResponse;
+import de.jmeinert.issuetracker.user.CurrentUserResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,6 +45,14 @@ public class AuthController {
     @Operation(summary = "Get CSRF token")
     @NoContentResponse
     public void csrf() {
+    }
 
+    @GetMapping("/api/auth/me")
+    @Operation(summary = "Get currently logged-in user")
+    @OkResponse(description = "Current user")
+    @UnauthorizedResponse(description = "Not logged in")
+    @SecurityRequirement(name = OpenApiConfig.COOKIE_AUTH_SECURITY_SCHEME)
+    public CurrentUserResponse me() {
+        return CurrentUserResponse.from(authService.me());
     }
 }
