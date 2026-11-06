@@ -34,11 +34,11 @@ public class UserController {
     @BadRequestResponse
     @ConflictResponse(description = "Self-deactivation is not allowed")
     @RestrictedEndpointResponses
-    public UserResponse changeUserEnabled(
+    public ChangeUserEnabledResponse changeUserEnabled(
         @Valid @RequestBody ChangeUserEnabledRequest request,
         @PathVariable Long userId
     ) {
-        return UserResponse.from(
+        return ChangeUserEnabledResponse.from(
             userService.changeEnabled(userId, request.enabled())
         );
     }
