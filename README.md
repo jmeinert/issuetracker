@@ -254,12 +254,13 @@ cd backend
 
 ### Authentication
 
-| Method | Endpoint             | Access | Description     |
-|--------|----------------------|--------|-----------------|
-| `GET`  | `/api/auth/csrf`     | Public | Get CSRF token  |
-| `POST` | `/api/auth/register` | Public | Register a user |
-| `POST` | `/api/auth/login`    | Public | Log in          |
-| `POST` | `/api/auth/logout`   | Public | Log out         |
+| Method | Endpoint             | Access             | Description                  |
+|--------|----------------------|--------------------|------------------------------|
+| `GET`  | `/api/auth/csrf`     | Public             | Get CSRF token               |
+| `GET`  | `/api/auth/me`       | Authenticated user | Get currently logged-in user |
+| `POST` | `/api/auth/register` | Public             | Register a user              |
+| `POST` | `/api/auth/login`    | Public             | Log in                       |
+| `POST` | `/api/auth/logout`   | Public             | Log out                      |
 
 ### Users
 

@@ -1,5 +1,7 @@
 package de.jmeinert.issuetracker.auth;
 
+import de.jmeinert.issuetracker.security.AuthenticatedUserProvider;
+import de.jmeinert.issuetracker.user.User;
 import de.jmeinert.issuetracker.user.UserNormalizer;
 import de.jmeinert.issuetracker.user.UserService;
 
@@ -19,9 +21,16 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserService userService, PasswordEncoder passwordEncoder) {
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+
+    public AuthService(
+        UserService userService,
+        PasswordEncoder passwordEncoder,
+        AuthenticatedUserProvider authenticatedUserProvider
+    ) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
+        this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
     public void register(RegisterRequest request) {
@@ -44,6 +53,10 @@ public class AuthService {
 
             throw exception;
         }
+    }
+
+    public User me() {
+        return userService.findById(authenticatedUserProvider.getUserId());
     }
 
     private boolean isDuplicateUserConstraint(DataIntegrityViolationException exception) {
