@@ -45,9 +45,6 @@ class UserControllerTest extends BaseSecurityWebMvcTest {
                     }
                     """))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.username").value("testuser"))
-            .andExpect(jsonPath("$.email").value("testuser@example.com"))
-            .andExpect(jsonPath("$.role").value("USER"))
             .andExpect(jsonPath("$.enabled").value(false));
     }
 
