@@ -82,6 +82,24 @@ public class OpenApiConfig {
         };
     }
 
+    @Bean
+    OpenApiCustomizer requiredResponsePropertiesCustomizer() {
+        return openApi -> {
+            // Declare all properties of every response schema as required as they are always included in JSON
+            openApi.getComponents().getSchemas().forEach((key, schema) -> {
+                if (!key.contains("Response")) {
+                    return;
+                }
+
+                // Preserve String keys, because `getSchemas()` returns raw Schema values
+                Schema<?> responseSchema = schema;
+
+                List<String> properties = responseSchema.getProperties().keySet().stream().toList();
+                responseSchema.setRequired(properties);
+            });
+        };
+    }
+
     private Operation loginOperation(Schema<?> errorSchema) {
         return new Operation()
             .operationId("login")
