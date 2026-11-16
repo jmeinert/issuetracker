@@ -1,5 +1,13 @@
-import type { ReactNode } from 'react';
+import { MantineProvider } from '@mantine/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type ReactNode } from 'react';
+
+const queryClient = new QueryClient();
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider defaultColorScheme="auto">{children}</MantineProvider>
+    </QueryClientProvider>
+  );
 }

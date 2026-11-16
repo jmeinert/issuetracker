@@ -1,0 +1,1 @@
+export { FullPageCenter } from './FullPageCenter';
