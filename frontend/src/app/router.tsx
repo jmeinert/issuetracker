@@ -1,14 +1,21 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, replace } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { paths } from '@/config/paths';
 import { AppRoot } from './routes/app/root';
 import { AuthRoot } from './routes/auth/root';
+import { LoadingFallback } from '@/components/fallbacks';
 
 const router = createBrowserRouter([
   {
     path: '/auth',
     Component: AuthRoot,
+    HydrateFallback: LoadingFallback,
     children: [
+      {
+        index: true,
+        loader: () => replace(paths.auth.login.getHref()),
+        Component: () => null,
+      },
       {
         path: paths.auth.register.path,
         lazy: () => import('./routes/auth/register'),
@@ -21,7 +28,8 @@ const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <AppRoot />, // @todo: add <ProtectedRoute> later
+    Component: AppRoot,
+    HydrateFallback: LoadingFallback,
     children: [{ index: true, lazy: () => import('./routes/app/home') }],
   },
 ]);
