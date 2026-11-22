@@ -1,5 +1,5 @@
-import { FullPageCenter } from '../ui/FullPageCenter';
 import { Loader } from '@mantine/core';
+import { FullPageCenter } from '../ui/FullPageCenter';
 
 export function LoadingFallback() {
   return (

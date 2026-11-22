@@ -1,6 +1,6 @@
-import { FullPageCenter } from '../ui/FullPageCenter';
-import { Alert, Button } from '@mantine/core';
 import { getApiErrorMessage } from '@/lib/api-client';
+import { Alert, Button } from '@mantine/core';
+import { FullPageCenter } from '../ui/FullPageCenter';
 
 export function ErrorFallback({ error }: { error: Error }) {
   return (
