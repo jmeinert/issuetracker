@@ -16,9 +16,9 @@ public class AuthTestHelper {
         this.mockMvc = mockMvc;
     }
 
-    public MockHttpSession login(String username, String password) throws Exception {
+    public MockHttpSession login(String email, String password) throws Exception {
         var result = mockMvc.perform(formLogin("/api/auth/login")
-                .user(username)
+                .user("email", email)
                 .password(password))
             .andExpect(status().isNoContent())
             .andExpect(authenticated())

@@ -176,7 +176,6 @@ class AdminAuthorizationIT {
     void changeUserEnabled_grantsAccess_whenPrincipalIsAnAdmin() throws Exception {
         User admin = new UserTestBuilder()
             .id(2L)
-            .username("admin")
             .role(UserRole.ADMIN)
             .build();
 

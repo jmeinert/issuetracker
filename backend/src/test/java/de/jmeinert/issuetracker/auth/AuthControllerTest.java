@@ -26,12 +26,12 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
 
     @Test
     void register_returns201_whenRequestIsValid() throws Exception {
-        register("testuser", "test@example.com", "TestPassword1234")
+        register("test@example.com", "Test User", "TestPassword1234")
             .andExpect(status().isCreated())
             .andExpect(content().string(""));
 
         verify(authService).register(
-            new RegisterRequest("testuser", "test@example.com", "TestPassword1234")
+            new RegisterRequest("test@example.com", "Test User", "TestPassword1234")
         );
     }
 
@@ -41,37 +41,15 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
             .when(authService)
             .register(any(RegisterRequest.class));
 
-        register("testuser", "test@example.com", "TestPassword1234")
+        register("test@example.com", "Test User", "TestPassword1234")
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message")
                 .value("User with the supplied registration data already exists."));
     }
 
     @Test
-    void register_returns400_whenUsernameIsBlank() throws Exception {
-        register("", "test@example.com", "TestPassword1234")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.username").value("must not be blank"));
-
-        verifyNoInteractions(authService);
-    }
-
-    @Test
-    void register_returns400_whenUsernameIsTooLong() throws Exception {
-        String tooLongUsername = "a".repeat(51);
-
-        register(tooLongUsername, "test@example.com", "TestPassword1234")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.errors.username").value("size must be between 0 and 50"));
-
-        verifyNoInteractions(authService);
-    }
-
-    @Test
     void register_returns400_whenEmailIsBlank() throws Exception {
-        register("testuser", "", "TestPassword1234")
+        register("", "Test User", "TestPassword1234")
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.email").value("must not be blank"));
@@ -86,7 +64,7 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
             + "c".repeat(63) + "."
             + "d".repeat(59) + ".com";
 
-        register("testuser", tooLongEmail, "TestPassword1234")
+        register(tooLongEmail, "Test User", "TestPassword1234")
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.email").value("size must be between 0 and 255"));
@@ -100,6 +78,28 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Validation failed"))
             .andExpect(jsonPath("$.errors.email").value("must be a well-formed email address"));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void register_returns400_whenDisplayNameIsBlank() throws Exception {
+        register("test@example.com", "", "TestPassword1234")
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.displayName").value("must not be blank"));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void register_returns400_whenDisplayNameIsTooLong() throws Exception {
+        String tooLongDisplayName = "a".repeat(51);
+
+        register("test@example.com", tooLongDisplayName, "TestPassword1234")
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.errors.displayName").value("size must be between 0 and 50"));
 
         verifyNoInteractions(authService);
     }
@@ -141,8 +141,8 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
     }
 
     private ResultActions register(
-        String username,
         String email,
+        String displayName,
         String password
     ) throws Exception {
         return mockMvc.perform(post("/api/auth/register")
@@ -150,10 +150,10 @@ class AuthControllerTest extends BaseSecurityWebMvcTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {
-                    "username": "%s",
                     "email": "%s",
+                    "displayName": "%s",
                     "password": "%s"
                 }
-                """.formatted(username, email, password)));
+                """.formatted(email, displayName, password)));
     }
 }

@@ -53,6 +53,7 @@ public class SecurityConfig {
             )
             .formLogin(formLogin -> formLogin
                 .loginProcessingUrl("/api/auth/login")
+                .usernameParameter("email")
                 .successHandler((request, response, authentication) -> response.setStatus(HttpStatus.NO_CONTENT.value()))
                 .failureHandler(securityExceptionHandler)
                 .permitAll()

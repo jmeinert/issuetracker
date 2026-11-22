@@ -29,11 +29,11 @@ public class User {
     )
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String username;
-
     @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(nullable = false, length = 50)
+    private String displayName;
 
     @Column(nullable = false)
     private String passwordHash;
@@ -53,14 +53,14 @@ public class User {
     }
 
     public User(
-        String username,
         String email,
+        String displayName,
         String passwordHash,
         UserRole role,
         boolean enabled
     ) {
-        this.username = username;
         this.email = email;
+        this.displayName = displayName;
         this.passwordHash = passwordHash;
         this.role = role;
         this.enabled = enabled;
@@ -70,12 +70,12 @@ public class User {
         return id;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
     public String getEmail() {
         return email;
+    }
+
+    public String getDisplayName() {
+        return displayName;
     }
 
     public String getPasswordHash() {

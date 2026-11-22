@@ -108,7 +108,7 @@ public class OpenApiConfig {
             .requestBody(loginRequestBody())
             .responses(new ApiResponses()
                 .addApiResponse("204", noContentApiResponse())
-                .addApiResponse("401", errorApiResponse(errorSchema, "Invalid username or password"))
+                .addApiResponse("401", errorApiResponse(errorSchema, "Invalid email or password"))
                 .addApiResponse("403", errorApiResponse(errorSchema, "Access denied"))
             );
     }
@@ -126,12 +126,12 @@ public class OpenApiConfig {
 
     private RequestBody loginRequestBody() {
         var schema = new ObjectSchema();
-        schema.addProperty("username", new StringSchema());
+        schema.addProperty("email", new StringSchema());
         schema.addProperty("password", new StringSchema()
             .format("password")
             .description("Password of the user account")
         );
-        schema.required(List.of("username", "password"));
+        schema.required(List.of("email", "password"));
 
         return new RequestBody()
             .required(true)

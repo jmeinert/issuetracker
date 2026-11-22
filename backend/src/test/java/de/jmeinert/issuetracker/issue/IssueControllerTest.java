@@ -48,7 +48,6 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
     private final Project project = new Project("TestName", "TestDescription");
 
     private final User reporter = new UserTestBuilder()
-        .username("reporter")
         .email("reporter@example.com")
         .build();
 
@@ -754,7 +753,6 @@ class IssueControllerTest extends BaseSecurityWebMvcTest {
 
         User assignee = new UserTestBuilder()
             .id(assigneeId)
-            .username("assignee")
             .email("assignee@example.com")
             .build();
 

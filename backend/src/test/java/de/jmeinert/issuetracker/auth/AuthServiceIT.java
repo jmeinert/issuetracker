@@ -7,8 +7,7 @@ import de.jmeinert.issuetracker.user.UserRepository;
 import de.jmeinert.issuetracker.user.UserService;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -54,49 +53,34 @@ class AuthServiceIT {
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @ParameterizedTest
-    @CsvSource({
-        "testuser, test2@example.com",
-        "testuser2, test@example.com"
-    })
-    void register_throwsUserAlreadyExistsException_whenUniqueConstraintIsViolated(
-        String secondUsername,
-        String secondEmail
-    ) {
+    @Test
+    void register_throwsUserAlreadyExistsException_whenUniqueConstraintIsViolated() {
+        String email = "test@example.com";
+        String displayName = "Test User";
         String password = "TestPassword1234";
         String encodedPassword = "EncodedPassword";
 
-        RegisterRequest firstRequest = new RegisterRequest(
-            "testuser",
-            "test@example.com",
-            password
-        );
-
-        RegisterRequest secondRequest = new RegisterRequest(
-            secondUsername,
-            secondEmail,
+        RegisterRequest request = new RegisterRequest(
+            email,
+            displayName,
             password
         );
 
         doReturn(false)
             .when(userService)
-            .existsByUsernameOrEmail("testuser", "test@example.com");
-
-        doReturn(false)
-            .when(userService)
-            .existsByUsernameOrEmail(secondUsername, secondEmail);
+            .existsByEmail(email);
 
         when(passwordEncoder.encode(password))
             .thenReturn(encodedPassword);
 
         // 1st registration
-        authService.register(firstRequest);
+        authService.register(request);
 
         // 2nd registration
         // Cause a `DataIntegrityViolationException` with stubbed existence check
         assertThrows(
             UserAlreadyExistsException.class,
-            () -> authService.register(secondRequest)
+            () -> authService.register(request)
         );
     }
 }

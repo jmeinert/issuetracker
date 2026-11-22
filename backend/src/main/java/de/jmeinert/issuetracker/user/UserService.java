@@ -29,19 +29,19 @@ public class UserService {
             .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 
-    public boolean existsByUsernameOrEmail(String username, String email) {
-        return userRepository.existsByUsernameOrEmail(username, email);
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 
     @Transactional
-    public User create(String username, String email, String passwordHash) {
+    public User create(String email, String displayName, String passwordHash) {
         User user = new User(
-            username,
             email,
+            displayName,
             passwordHash,
             UserRole.USER,
             true

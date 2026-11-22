@@ -55,10 +55,9 @@ class AuthIT {
 
     @Test
     void register_persistsNormalizedUserWithEncodedPasswordAndDefaults() throws Exception {
-        String username = "   TestUser   ";
         String email = "Test@Example.com";
+        String displayName = "Test User";
         String password = "TestPassword1234";
-        String normalizedUsername = "testuser";
         String normalizedEmail = "test@example.com";
 
         mockMvc.perform(post("/api/auth/register")
@@ -66,17 +65,17 @@ class AuthIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
-                        "username": "%s",
                         "email": "%s",
+                        "displayName": "%s",
                         "password": "%s"
                     }
-                    """.formatted(username, email, password)))
+                    """.formatted(email, displayName, password)))
             .andExpect(status().isCreated());
 
-        User user = userRepository.findByUsername(normalizedUsername).orElseThrow();
+        User user = userRepository.findByEmail(normalizedEmail).orElseThrow();
 
-        assertThat(user.getUsername()).isEqualTo(normalizedUsername);
         assertThat(user.getEmail()).isEqualTo(normalizedEmail);
+        assertThat(user.getDisplayName()).isEqualTo(displayName);
         assertThat(user.getPasswordHash()).isNotEqualTo(password);
         assertThat(passwordEncoder.matches(password, user.getPasswordHash())).isTrue();
         assertThat(user.getPasswordHash()).startsWith("{argon2id}");
@@ -87,15 +86,14 @@ class AuthIT {
 
     @ParameterizedTest
     @EnumSource(UserRole.class)
-    void login_withUnnormalizedUsername_authenticatesUser(UserRole role) throws Exception {
-        String username = "   TestUser   ";
-        String normalizedUsername = "testuser";
-        String email = "test@example.com";
+    void login_withUnnormalizedEmail_authenticatesUser(UserRole role) throws Exception {
+        String email = "Test@Example.com";
+        String normalizedEmail = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser(normalizedUsername, email, password, role, true);
+        saveUser(normalizedEmail, password, role, true);
 
-        MockHttpSession session = auth.login(username, password);
+        MockHttpSession session = auth.login(email, password);
 
         mockMvc.perform(get("/api/projects")
                 .session(session))
@@ -104,61 +102,57 @@ class AuthIT {
     }
 
     @Test
-    void login_returns401_whenUsernameIsWrong() throws Exception {
-        String username = "testuser";
+    void login_returns401_whenEmailIsWrong() throws Exception {
         String email = "test@example.com";
         String password = "TestPassword1234";
-        String wrongUsername = "testuser2";
+        String wrongEmail = "test2@example.com";
 
-        saveUser(username, email, password, UserRole.USER, true);
+        saveUser(email, password, UserRole.USER, true);
 
         mockMvc.perform(formLogin("/api/auth/login")
-                .user(wrongUsername)
+                .user("email", wrongEmail)
                 .password(password))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.message").value("Invalid username or password"));
+            .andExpect(jsonPath("$.message").value("Invalid email or password"));
     }
 
     @Test
     void login_returns401_whenPasswordIsWrong() throws Exception {
-        String username = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
         String wrongPassword = "TestPassword12345";
 
-        saveUser(username, email, password, UserRole.USER, true);
+        saveUser(email, password, UserRole.USER, true);
 
         mockMvc.perform(formLogin("/api/auth/login")
-                .user(username)
+                .user("email", email)
                 .password(wrongPassword))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.message").value("Invalid username or password"));
+            .andExpect(jsonPath("$.message").value("Invalid email or password"));
     }
 
     @Test
     void login_returns401_whenUserIsDeactivated() throws Exception {
-        String username = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser(username, email, password, UserRole.USER, false);
+        saveUser(email, password, UserRole.USER, false);
 
         mockMvc.perform(formLogin("/api/auth/login")
-                .user(username)
+                .user("email", email)
                 .password(password))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.message").value("Invalid username or password"));
+            .andExpect(jsonPath("$.message").value("Invalid email or password"));
     }
 
     @Test
     void logout_invalidatesSession() throws Exception {
-        String username = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser(username, email, password, UserRole.USER, true);
+        saveUser(email, password, UserRole.USER, true);
 
-        MockHttpSession session = auth.login(username, password);
+        MockHttpSession session = auth.login(email, password);
 
         mockMvc.perform(get("/api/projects")
                 .session(session))
@@ -182,13 +176,12 @@ class AuthIT {
 
     @Test
     void logout_keepsSessionValid_whenCSRFTokenIsInvalid() throws Exception {
-        String username = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser(username, email, password, UserRole.USER, true);
+        saveUser(email, password, UserRole.USER, true);
 
-        MockHttpSession session = auth.login(username, password);
+        MockHttpSession session = auth.login(email, password);
 
         mockMvc.perform(post("/api/auth/logout")
                 .with(csrf().useInvalidToken())
@@ -207,22 +200,22 @@ class AuthIT {
     @ParameterizedTest
     @EnumSource(UserRole.class)
     void me_returnsCurrentlyLoggedInUser_whenUserIsLoggedIn(UserRole role) throws Exception {
-        String username = "testuser";
         String email = "test@example.com";
         String password = "TestPassword1234";
 
-        saveUser("testuser2", "test2@example.com", password, role, true);
-        saveUser(username, email, password, role, true);
+        saveUser("test2@example.com", password, role, true);
+        saveUser(email, password, role, true);
 
-        User user = userRepository.findByUsername(username).orElseThrow();
+        User user = userRepository.findByEmail(email).orElseThrow();
 
-        MockHttpSession session = auth.login(username, password);
+        MockHttpSession session = auth.login(email, password);
 
         mockMvc.perform(get("/api/auth/me")
                 .session(session))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(user.getId()))
-            .andExpect(jsonPath("$.username").value(user.getUsername()))
+            .andExpect(jsonPath("$.email").value(user.getEmail()))
+            .andExpect(jsonPath("$.displayName").value(user.getDisplayName()))
             .andExpect(jsonPath("$.role").value(user.getRole().name()));
     }
 
@@ -233,10 +226,10 @@ class AuthIT {
             .andExpect(jsonPath("$.message").value("Authentication required"));
     }
 
-    private void saveUser(String username, String email, String password, UserRole role, boolean enabled) {
+    private void saveUser(String email, String password, UserRole role, boolean enabled) {
         userRepository.saveAndFlush(new User(
-            username,
             email,
+            "Test User",
             passwordEncoder.encode(password),
             role,
             enabled

@@ -30,22 +30,7 @@ class UserRepositoryIT {
     private EntityManager entityManager;
 
     @Test
-    void existsByUsernameOrEmail_returnsTrue_whenUserHasUsername() {
-        String username = "testuser";
-
-        User user = new UserTestBuilder()
-            .username(username)
-            .build();
-
-        userRepository.saveAndFlush(user);
-        entityManager.clear();
-
-        assertThat(userRepository.existsByUsernameOrEmail(username, "test2@test.com"))
-            .isTrue();
-    }
-
-    @Test
-    void existsByUsernameOrEmail_returnsTrue_whenUserHasEmail() {
+    void existsByEmail_returnsTrue_whenUserHasEmail() {
         String email = "testuser@example.com";
 
         User user = new UserTestBuilder()
@@ -55,29 +40,28 @@ class UserRepositoryIT {
         userRepository.saveAndFlush(user);
         entityManager.clear();
 
-        assertThat(userRepository.existsByUsernameOrEmail("testuser2", email))
+        assertThat(userRepository.existsByEmail(email))
             .isTrue();
     }
 
     @Test
-    void existsByUsernameOrEmail_returnsFalse_whenNoUserHasUsernameOrEmail() {
+    void existsByEmail_returnsFalse_whenNoUserHasEmail() {
         User user = new UserTestBuilder()
-            .username("testuser")
             .email("testuser@example.com")
             .build();
 
         userRepository.saveAndFlush(user);
         entityManager.clear();
 
-        assertThat(userRepository.existsByUsernameOrEmail("testuser2", "testuser2@example.com"))
+        assertThat(userRepository.existsByEmail("testuser2@example.com"))
             .isFalse();
     }
 
     @Test
     void save_persistsUser() {
         User user = new UserTestBuilder()
-            .username("testuser")
             .email("testuser@example.com")
+            .displayName("Test User")
             .passwordHash("passwordHash")
             .role(UserRole.USER)
             .enabled(false)
@@ -92,8 +76,8 @@ class UserRepositoryIT {
             .orElseThrow();
 
         assertThat(persistedUser.getId()).isEqualTo(userId);
-        assertThat(persistedUser.getUsername()).isEqualTo("testuser");
         assertThat(persistedUser.getEmail()).isEqualTo("testuser@example.com");
+        assertThat(persistedUser.getDisplayName()).isEqualTo("Test User");
         assertThat(persistedUser.getPasswordHash()).isEqualTo("passwordHash");
         assertThat(persistedUser.getRole()).isEqualTo(UserRole.USER);
         assertThat(persistedUser.isEnabled()).isFalse();
@@ -119,13 +103,13 @@ class UserRepositoryIT {
 
     @Test
     void save_acceptsMaximumFieldLengths() {
-        String username = "a".repeat(50);
         String email = "a".repeat(255);
+        String displayName = "a".repeat(50);
         String passwordHash = "a".repeat(255);
 
         User user = new UserTestBuilder()
-            .username(username)
             .email(email)
+            .displayName(displayName)
             .passwordHash(passwordHash)
             .build();
 
@@ -135,52 +119,23 @@ class UserRepositoryIT {
         User persistedUser = userRepository.findById(user.getId())
             .orElseThrow();
 
-        assertThat(persistedUser.getUsername())
-            .isEqualTo(username);
         assertThat(persistedUser.getEmail())
             .isEqualTo(email);
+        assertThat(persistedUser.getDisplayName())
+            .isEqualTo(displayName);
         assertThat(persistedUser.getPasswordHash())
             .isEqualTo(passwordHash);
     }
 
     @Test
-    void save_rejectsDuplicateUsername() {
-        User user1 = new UserTestBuilder()
-            .username("testuser")
-            .email("testuser@example.com")
-            .build();
-        userRepository.saveAndFlush(user1);
-        entityManager.clear();
-
-        User user2 = new UserTestBuilder()
-            .username("testuser")
-            .email("testuser2@example.com")
-            .build();
-
-        assertThatThrownBy(() -> userRepository.saveAndFlush(user2))
-            .isInstanceOf(DataIntegrityViolationException.class)
-            .rootCause()
-            .isInstanceOfSatisfying(PSQLException.class, exception -> {
-                assertThat(exception.getSQLState())
-                    .isEqualTo(PSQLState.UNIQUE_VIOLATION.getState());
-                assertThat(exception.getServerErrorMessage())
-                    .isNotNull();
-                assertThat(exception.getServerErrorMessage().getConstraint())
-                    .isEqualTo("uq_users_username");
-            });
-    }
-
-    @Test
     void save_rejectsDuplicateEmail() {
         User user1 = new UserTestBuilder()
-            .username("testuser")
             .email("testuser@example.com")
             .build();
         userRepository.saveAndFlush(user1);
         entityManager.clear();
 
         User user2 = new UserTestBuilder()
-            .username("testuser2")
             .email("testuser@example.com")
             .build();
 

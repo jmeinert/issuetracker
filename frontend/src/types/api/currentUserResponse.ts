@@ -9,6 +9,7 @@ import type { CurrentUserResponseRole } from './currentUserResponseRole';
 
 export interface CurrentUserResponse {
   id: number;
-  username: string;
+  email: string;
+  displayName: string;
   role: CurrentUserResponseRole;
 }

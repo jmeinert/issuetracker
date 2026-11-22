@@ -21,10 +21,10 @@ public class DatabaseUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        String normalizedUsername = UserNormalizer.normalizeUsername(username);
-        User user = userService.findByUsername(normalizedUsername)
-            .orElseThrow(() -> new UsernameNotFoundException(normalizedUsername));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        String normalizedEmail = UserNormalizer.normalizeEmail(email);
+        User user = userService.findByEmail(normalizedEmail)
+            .orElseThrow(() -> new UsernameNotFoundException(normalizedEmail));
 
         return new UserPrincipal(user);
     }

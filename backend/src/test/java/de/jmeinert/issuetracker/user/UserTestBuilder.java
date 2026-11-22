@@ -6,9 +6,9 @@ public class UserTestBuilder {
 
     private Long id;
 
-    private String username = "testuser";
-
     private String email = "testuser@example.com";
+
+    private String displayName = "Test User";
 
     private String passwordHash = "passwordHash";
 
@@ -21,13 +21,13 @@ public class UserTestBuilder {
         return this;
     }
 
-    public UserTestBuilder username(String username) {
-        this.username = username;
+    public UserTestBuilder email(String email) {
+        this.email = email;
         return this;
     }
 
-    public UserTestBuilder email(String email) {
-        this.email = email;
+    public UserTestBuilder displayName(String displayName) {
+        this.displayName = displayName;
         return this;
     }
 
@@ -48,8 +48,8 @@ public class UserTestBuilder {
 
     public User build() {
         User user = new User(
-            username,
             email,
+            displayName,
             passwordHash,
             role,
             enabled
