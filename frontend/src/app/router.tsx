@@ -1,9 +1,9 @@
+import { LoadingFallback } from '@/components/fallbacks';
+import { paths } from '@/config/paths';
 import { createBrowserRouter, replace } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
-import { paths } from '@/config/paths';
 import { AppRoot } from './routes/app/root';
 import { AuthRoot } from './routes/auth/root';
-import { LoadingFallback } from '@/components/fallbacks';
 
 const router = createBrowserRouter([
   {

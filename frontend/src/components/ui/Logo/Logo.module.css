@@ -1,0 +1,15 @@
+.logo {
+  --logo-size: 2rem;
+
+  margin-block-end: var(--logo-size);
+  font-size: var(--logo-size);
+  text-align: center;
+
+  &[data-size='xl'] {
+    --logo-size: 3rem;
+  }
+
+  span {
+    font-weight: 700;
+  }
+}

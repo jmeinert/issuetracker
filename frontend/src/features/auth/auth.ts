@@ -1,6 +1,6 @@
-import { type CurrentUserResponse } from '@/types/api';
 import { api } from '@/lib/api-client';
-import { useQuery } from '@tanstack/react-query';
+import { type CurrentUserResponse, type LoginBody } from '@/types/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 
 export const authKeys = {
@@ -32,4 +32,20 @@ export function useCurrentUser() {
     error,
     user: data,
   };
+}
+
+async function login(values: LoginBody) {
+  await api.post('/auth/login', new URLSearchParams(values));
+}
+
+export function useLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: login,
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: authKeys.currentUser(),
+      }),
+  });
 }
