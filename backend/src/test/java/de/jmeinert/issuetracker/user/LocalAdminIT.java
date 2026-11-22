@@ -26,9 +26,9 @@ class LocalAdminIT {
 
     @Test
     void localAdminIsSeeded() {
-        User admin = userRepository.findByUsername("admin").orElseThrow();
+        User admin = userRepository.findByEmail("admin@localhost.invalid").orElseThrow();
 
-        assertThat(admin.getEmail()).isEqualTo("admin@localhost.invalid");
+        assertThat(admin.getDisplayName()).isEqualTo("The Admin");
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
         assertThat(admin.isEnabled()).isTrue();
         assertThat(admin.getPasswordHash()).startsWith("{argon2id}");

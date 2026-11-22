@@ -27,7 +27,6 @@ class UserControllerTest extends BaseSecurityWebMvcTest {
         Long userId = 1L;
 
         User user = new UserTestBuilder()
-            .username("testuser")
             .email("testuser@example.com")
             .role(UserRole.USER)
             .enabled(false)

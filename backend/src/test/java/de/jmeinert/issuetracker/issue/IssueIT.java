@@ -78,7 +78,6 @@ class IssueIT {
         projectRepository.saveAndFlush(project);
 
         reporter = new UserTestBuilder()
-            .username("reporter")
             .email("reporter@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.USER)
@@ -91,7 +90,7 @@ class IssueIT {
 
     @Test
     void create_persistsIssueWithAuthenticatedUserAsReporter() throws Exception {
-        MockHttpSession session = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter@example.com", "password");
 
         mockMvc.perform(post("/api/projects/{projectId}/issues", project.getId())
                 .with(csrf())
@@ -132,13 +131,11 @@ class IssueIT {
         Long issueId = issue.getId();
 
         User assignee1 = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .enabled(true)
             .build();
         User assignee2 = new UserTestBuilder()
-            .username("assignee2")
             .email("assignee2@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .enabled(true)
@@ -222,7 +219,7 @@ class IssueIT {
         Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
-        MockHttpSession session = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter@example.com", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
                 .with(csrf())
@@ -244,7 +241,6 @@ class IssueIT {
     @Test
     void update_returns200_whenPrincipalIsTheAssignee() throws Exception {
         User assignee = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.USER)
@@ -257,7 +253,7 @@ class IssueIT {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        MockHttpSession session = auth.login("assignee", "password");
+        MockHttpSession session = auth.login("assignee@example.com", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issue.getId())
                 .with(csrf())
@@ -279,7 +275,7 @@ class IssueIT {
     @Test
     void update_returns403_whenPrincipalIsNotAParticipant() throws Exception {
         User user = new UserTestBuilder()
-            .username("user")
+            .email("testuser@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.USER)
             .enabled(true)
@@ -295,7 +291,7 @@ class IssueIT {
 
         Long issueId = issue.getId();
 
-        MockHttpSession session = auth.login("user", "password");
+        MockHttpSession session = auth.login("testuser@example.com", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
                 .with(csrf())
@@ -344,7 +340,7 @@ class IssueIT {
         Issue issue = new IssueTestBuilder(project, reporter).build();
         issueRepository.saveAndFlush(issue);
 
-        MockHttpSession session = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter@example.com", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
                 .with(csrf())
@@ -362,7 +358,6 @@ class IssueIT {
     @Test
     void changeStatus_returns200_whenPrincipalIsTheAssignee() throws Exception {
         User assignee = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.USER)
@@ -375,7 +370,7 @@ class IssueIT {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        MockHttpSession session = auth.login("assignee", "password");
+        MockHttpSession session = auth.login("assignee@example.com", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
                 .with(csrf())
@@ -393,7 +388,7 @@ class IssueIT {
     @Test
     void changeStatus_returns403_whenPrincipalIsNotAParticipant() throws Exception {
         User user = new UserTestBuilder()
-            .username("user")
+            .email("testuser@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.USER)
             .enabled(true)
@@ -407,7 +402,7 @@ class IssueIT {
 
         Long issueId = issue.getId();
 
-        MockHttpSession session = auth.login("user", "password");
+        MockHttpSession session = auth.login("testuser@example.com", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issueId)
                 .with(csrf())
@@ -436,7 +431,7 @@ class IssueIT {
             .build();
         issueRepository.saveAndFlush(issue);
 
-        MockHttpSession session = auth.login("reporter", "password");
+        MockHttpSession session = auth.login("reporter@example.com", "password");
 
         mockMvc.perform(patch("/api/issues/{issueId}/status", issue.getId())
                 .with(csrf())
@@ -460,20 +455,18 @@ class IssueIT {
     @Test
     void issueWorkflow_adminCreatesAndAssignsIssueAndAssigneeUpdatesIt() throws Exception {
         User admin = new UserTestBuilder()
-            .username("admin")
             .email("admin@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.ADMIN)
             .build();
         User assignee = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .passwordHash(passwordEncoder.encode("password"))
             .role(UserRole.USER)
             .build();
         userRepository.saveAllAndFlush(List.of(admin, assignee));
 
-        MockHttpSession adminSession = auth.login("admin", "password");
+        MockHttpSession adminSession = auth.login("admin@example.com", "password");
 
         String projectResponse = mockMvc.perform(post("/api/projects")
                 .with(csrf())
@@ -521,7 +514,7 @@ class IssueIT {
                     """.formatted(assignee.getId())))
             .andExpect(status().isOk());
 
-        MockHttpSession assigneeSession = auth.login("assignee", "password");
+        MockHttpSession assigneeSession = auth.login("assignee@example.com", "password");
 
         mockMvc.perform(put("/api/issues/{issueId}", issueId)
                 .with(csrf())

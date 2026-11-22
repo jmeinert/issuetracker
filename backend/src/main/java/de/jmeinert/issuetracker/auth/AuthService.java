@@ -15,8 +15,6 @@ import java.util.Set;
 @Service
 public class AuthService {
 
-    private static final Set<String> DUPLICATE_USER_CONSTRAINT_NAMES = Set.of("uq_users_username", "uq_users_email");
-
     private final UserService userService;
 
     private final PasswordEncoder passwordEncoder;
@@ -34,17 +32,16 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
-        String normalizedUsername = UserNormalizer.normalizeUsername(request.username());
         String normalizedEmail = UserNormalizer.normalizeEmail(request.email());
 
-        if (userService.existsByUsernameOrEmail(normalizedUsername, normalizedEmail)) {
+        if (userService.existsByEmail(normalizedEmail)) {
             throw new UserAlreadyExistsException();
         }
 
         String passwordHash = passwordEncoder.encode(request.password());
 
         try {
-            userService.create(normalizedUsername, normalizedEmail, passwordHash);
+            userService.create(normalizedEmail, request.displayName(), passwordHash);
         } catch (DataIntegrityViolationException exception) {
             // Handle race condition of parallel registrations
             if (isDuplicateUserConstraint(exception)) {
@@ -71,8 +68,7 @@ public class AuthService {
                 return false;
             }
 
-            boolean hasDuplicateUserConstraintName
-                = DUPLICATE_USER_CONSTRAINT_NAMES.contains(constraintName);
+            boolean hasDuplicateUserConstraintName = constraintName.equals("uq_users_email");
             boolean isUniqueConstraint
                 = constraintViolationException.getKind() == ConstraintViolationException.ConstraintKind.UNIQUE;
             return hasDuplicateUserConstraintName && isUniqueConstraint;

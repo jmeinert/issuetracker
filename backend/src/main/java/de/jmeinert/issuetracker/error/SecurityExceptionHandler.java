@@ -52,7 +52,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
         AuthenticationException exception
     ) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        writeResponse(response, "Invalid username or password");
+        writeResponse(response, "Invalid email or password");
     }
 
     private void writeResponse(HttpServletResponse response, String message) throws IOException {

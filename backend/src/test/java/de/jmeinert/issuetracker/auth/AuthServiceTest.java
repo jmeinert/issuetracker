@@ -33,21 +33,20 @@ class AuthServiceTest {
     private AuthService authService;
 
     @Test
-    void register_normalizesUsernameAndEmailAndEncodesPassword() {
-        String username = "   TestUser   ";
+    void register_normalizesEmailAndEncodesPassword() {
         String email = "Test@Example.com";
+        String displayName = "Test User";
         String password = "TestPassword1234";
-        String normalizedUsername = "testuser";
         String normalizedEmail = "test@example.com";
         String encodedPassword = "EncodedPassword";
 
         RegisterRequest request = new RegisterRequest(
-            username,
             email,
+            displayName,
             password
         );
 
-        when(userService.existsByUsernameOrEmail(normalizedUsername, normalizedEmail))
+        when(userService.existsByEmail(normalizedEmail))
             .thenReturn(false);
 
         when(passwordEncoder.encode(password))
@@ -55,24 +54,24 @@ class AuthServiceTest {
 
         authService.register(request);
 
-        verify(userService).existsByUsernameOrEmail(normalizedUsername, normalizedEmail);
+        verify(userService).existsByEmail(normalizedEmail);
         verify(passwordEncoder).encode(password);
-        verify(userService).create(normalizedUsername, normalizedEmail, encodedPassword);
+        verify(userService).create(normalizedEmail, displayName, encodedPassword);
     }
 
     @Test
     void register_throwsUserAlreadyExistsException_whenUsernameOrEmailAlreadyExists() {
-        String username = "testuser";
         String email = "test@example.com";
+        String displayName = "Test User";
         String password = "TestPassword1234";
 
         RegisterRequest request = new RegisterRequest(
-            username,
             email,
+            displayName,
             password
         );
 
-        when(userService.existsByUsernameOrEmail(username, email))
+        when(userService.existsByEmail(email))
             .thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
@@ -85,32 +84,32 @@ class AuthServiceTest {
         );
 
         verifyNoInteractions(passwordEncoder);
-        verify(userService).existsByUsernameOrEmail(username, email);
+        verify(userService).existsByEmail(email);
         verify(userService, never()).create(anyString(), anyString(), anyString());
     }
 
     @Test
     void register_rethrowsDataIntegrityViolationException_whenNotCausedByDuplicateUserConstraint() {
-        String username = "testuser";
         String email = "test@example.com";
+        String displayName = "Test User";
         String password = "TestPassword1234";
         String encodedPassword = "EncodedPassword";
 
         RegisterRequest request = new RegisterRequest(
-            username,
             email,
+            displayName,
             password
         );
 
         var expectedException = new DataIntegrityViolationException("Unrelated constraint violation");
 
-        when(userService.existsByUsernameOrEmail(username, email))
+        when(userService.existsByEmail(email))
             .thenReturn(false);
 
         when(passwordEncoder.encode(password))
             .thenReturn(encodedPassword);
 
-        when(userService.create(username, email, encodedPassword))
+        when(userService.create(email, displayName, encodedPassword))
             .thenThrow(expectedException);
 
         DataIntegrityViolationException actualException = assertThrows(
@@ -123,27 +122,27 @@ class AuthServiceTest {
 
     @Test
     void register_rethrowsDataIntegrityViolationException_whenConstraintNameIsUnknown() {
-        String username = "testuser";
         String email = "test@example.com";
+        String displayName = "Test User";
         String password = "TestPassword1234";
         String encodedPassword = "EncodedPassword";
 
         RegisterRequest request = new RegisterRequest(
-            username,
             email,
+            displayName,
             password
         );
 
         var cause = new ConstraintViolationException("Violation with unknown constraint name", null, null);
         var expectedException = new DataIntegrityViolationException("Some violation", cause);
 
-        when(userService.existsByUsernameOrEmail(username, email))
+        when(userService.existsByEmail(email))
             .thenReturn(false);
 
         when(passwordEncoder.encode(password))
             .thenReturn(encodedPassword);
 
-        when(userService.create(username, email, encodedPassword))
+        when(userService.create(email, displayName, encodedPassword))
             .thenThrow(expectedException);
 
         DataIntegrityViolationException actualException = assertThrows(

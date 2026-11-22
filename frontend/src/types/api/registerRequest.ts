@@ -9,14 +9,14 @@
 export interface RegisterRequest {
   /**
      * @minLength 0
-     * @maxLength 50
-     */
-  username: string;
-  /**
-     * @minLength 0
      * @maxLength 255
      */
   email: string;
+  /**
+     * @minLength 0
+     * @maxLength 50
+     */
+  displayName: string;
   /**
      * Password for the new account
      * @minLength 15

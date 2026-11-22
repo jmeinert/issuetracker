@@ -53,7 +53,6 @@ class IssueRepositoryIT {
         projectRepository.saveAndFlush(project);
 
         reporter = new UserTestBuilder()
-            .username("reporter")
             .email("reporter@example.com")
             .build();
         userRepository.saveAndFlush(reporter);
@@ -155,7 +154,6 @@ class IssueRepositoryIT {
     @Test
     void existsByIdAndParticipantId_returnsTrue_whenIssueExistsAndUserIsTheAssignee() {
         User assignee = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .build();
         userRepository.saveAndFlush(assignee);

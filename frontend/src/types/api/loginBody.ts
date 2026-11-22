@@ -7,7 +7,7 @@
  */
 
 export type LoginBody = {
-  username: string;
+  email: string;
   /** Password of the user account */
   password: string;
 };

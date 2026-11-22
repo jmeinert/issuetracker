@@ -220,7 +220,7 @@ Clients cannot select or change their own role.
 
 For local development, Flyway seeds the following administrator:
 
-Username: `admin` <br>
+Email: `admin@localhost.invalid` <br>
 Password: `testpassword1234`
 
 ## Testing

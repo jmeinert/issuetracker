@@ -35,14 +35,14 @@ class AuthHttpIT {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final String username = "testuser";
+    private final String email = "testuser@example.com";
 
     private final String password = "TestPassword1234";
 
     @BeforeEach
     void setUp() {
         userRepository.saveAndFlush(new UserTestBuilder()
-            .username(username)
+            .email(email)
             .passwordHash(passwordEncoder.encode(password))
             .build());
     }
@@ -63,7 +63,7 @@ class AuthHttpIT {
         String csrf = csrfCookie.getValue();
 
         var form = new LinkedMultiValueMap<String, String>();
-        form.add("username", username);
+        form.add("email", email);
         form.add("password", password);
 
         ResponseCookie sessionCookie = client.post().uri("/api/auth/login")

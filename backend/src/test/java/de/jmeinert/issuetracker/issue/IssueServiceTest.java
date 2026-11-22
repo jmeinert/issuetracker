@@ -63,7 +63,6 @@ class IssueServiceTest {
     private final Project project = new Project("TestName", "TestDescription");
 
     private final User reporter = new UserTestBuilder()
-        .username("reporter")
         .email("reporter@example.com")
         .build();
 
@@ -381,7 +380,6 @@ class IssueServiceTest {
 
         User assignee = new UserTestBuilder()
             .id(assigneeId)
-            .username("assignee")
             .email("assignee@example.com")
             .enabled(true)
             .build();
@@ -436,7 +434,6 @@ class IssueServiceTest {
         Issue issue = new IssueTestBuilder(project, reporter).build();
 
         User assignee = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .enabled(false)
             .build();
@@ -459,7 +456,6 @@ class IssueServiceTest {
         Long issueId = 1L;
 
         User assignee = new UserTestBuilder()
-            .username("assignee")
             .email("assignee@example.com")
             .build();
 

@@ -72,7 +72,6 @@ class IssueQueryIT {
         projectRepository.saveAndFlush(project);
 
         reporter = new UserTestBuilder()
-            .username("reporter")
             .email("reporter@example.com")
             .build();
         userRepository.saveAndFlush(reporter);
