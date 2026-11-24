@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
@@ -213,17 +214,17 @@ class AuthIT {
         mockMvc.perform(get("/api/auth/me")
                 .session(session))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(user.getId()))
-            .andExpect(jsonPath("$.email").value(user.getEmail()))
-            .andExpect(jsonPath("$.displayName").value(user.getDisplayName()))
-            .andExpect(jsonPath("$.role").value(user.getRole().name()));
+            .andExpect(jsonPath("$.user.id").value(user.getId()))
+            .andExpect(jsonPath("$.user.email").value(user.getEmail()))
+            .andExpect(jsonPath("$.user.displayName").value(user.getDisplayName()))
+            .andExpect(jsonPath("$.user.role").value(user.getRole().name()));
     }
 
     @Test
-    void me_returns401_whenUserIsNotLoggedIn() throws Exception {
+    void me_returnsEmptyUser_whenUserIsNotLoggedIn() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.message").value("Authentication required"));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user").value(nullValue()));
     }
 
     private void saveUser(String email, String password, UserRole role, boolean enabled) {

@@ -31,6 +31,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/register",
         "/api/auth/csrf",
+        "/api/auth/me",
         "/scalar/**",
         "/v3/api-docs/**"
     };

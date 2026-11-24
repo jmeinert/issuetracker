@@ -1,25 +1,15 @@
 import { api, getApiErrorMessage } from '@/lib/api-client';
-import { type CurrentUserResponse, type LoginBody } from '@/types/api';
+import { type CurrentSessionResponse, type LoginBody } from '@/types/api';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { isAxiosError } from 'axios';
 
 export const authKeys = {
   currentUser: () => ['auth', 'currentUser'] as const,
 };
 
 async function getCurrentUser() {
-  try {
-    const { data } = await api.get<CurrentUserResponse>('/auth/me');
-    return data;
-  } catch (error) {
-    // User is not logged in
-    if (isAxiosError(error) && error.response?.status === 401) {
-      return null;
-    }
-
-    throw error;
-  }
+  const { data } = await api.get<CurrentSessionResponse>('/auth/me');
+  return data.user;
 }
 
 export function useCurrentUser() {

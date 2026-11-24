@@ -13,6 +13,7 @@ export * from './changeUserEnabledRequest';
 export * from './changeUserEnabledResponse';
 export * from './createIssueRequest';
 export * from './createIssueRequestPriority';
+export * from './currentSessionResponse';
 export * from './currentUserResponse';
 export * from './currentUserResponseRole';
 export * from './errorResponse';
