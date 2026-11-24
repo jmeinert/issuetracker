@@ -13,6 +13,9 @@ spring:
 springdoc:
   default-produces-media-type: application/json
   override-with-generic-response: false
+  model-converters:
+    java-nullable-property-customizer:
+      enabled: true
 
 server:
   servlet:

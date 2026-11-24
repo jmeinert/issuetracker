@@ -53,7 +53,9 @@ public class AuthService {
     }
 
     public User me() {
-        return userService.findById(authenticatedUserProvider.getUserId());
+        return authenticatedUserProvider.findUserId()
+            .map(userService::findById)
+            .orElse(null);
     }
 
     private boolean isDuplicateUserConstraint(DataIntegrityViolationException exception) {
