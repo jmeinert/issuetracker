@@ -1,0 +1,14 @@
+.navbar {
+  padding: 1rem;
+
+  &[data-mobile-collapsed='true'] {
+    @mixin smaller-than $mantine-breakpoint-sm {
+      visibility: hidden;
+    }
+  }
+}
+
+.burgerWrapper {
+  height: 100%;
+  padding: 1rem;
+}
