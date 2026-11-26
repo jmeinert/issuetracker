@@ -3,7 +3,7 @@ import { create, isAxiosError } from 'axios';
 export const api = create({
   baseURL: '/api',
   timeout: 15_000,
-  headers: { Accept: 'application/json' },
+  headers: { Accept: 'application/json', 'Accept-Language': 'en' },
 });
 
 export function getApiErrorMessage(error: unknown): string {

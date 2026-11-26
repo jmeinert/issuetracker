@@ -1,7 +1,13 @@
+import { paths } from '@/config/paths';
 import { api, getApiErrorMessage } from '@/lib/api-client';
-import { type CurrentSessionResponse, type LoginBody } from '@/types/api';
+import {
+  type CurrentSessionResponse,
+  type LoginBody,
+  type RegisterRequest,
+} from '@/types/api';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 
 export const authKeys = {
   currentUser: () => ['auth', 'currentUser'] as const,
@@ -65,5 +71,18 @@ export function useLogout() {
         message: getApiErrorMessage(error),
       });
     },
+  });
+}
+
+async function register(values: RegisterRequest) {
+  await api.post('/auth/register', values);
+}
+
+export function useRegister() {
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: register,
+    onSuccess: () => navigate(paths.auth.login.getHref(), { replace: true }),
   });
 }
