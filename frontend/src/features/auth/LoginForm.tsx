@@ -1,6 +1,6 @@
 import { getApiErrorMessage } from '@/lib/api-client';
 import { Alert, Button, PasswordInput, Stack, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { hasLength, isNotEmpty, useForm } from '@mantine/form';
 import { useLogin } from './auth';
 
 export function LoginForm() {
@@ -12,10 +12,16 @@ export function LoginForm() {
       email: '',
       password: '',
     },
+    validate: {
+      email: (value) =>
+        isNotEmpty('Email is required')(value) ??
+        hasLength({ max: 255 }, 'Email must be 255 characters or less')(value),
+      password: isNotEmpty('Password is required'),
+    },
   });
 
   return (
-    <form onSubmit={form.onSubmit((values) => login.mutate(values))}>
+    <form noValidate onSubmit={form.onSubmit((values) => login.mutate(values))}>
       <Stack>
         {login.isError && (
           <Alert color="red" role="alert">
